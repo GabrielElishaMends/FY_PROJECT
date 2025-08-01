@@ -73,3 +73,13 @@ ios/
 # =========================
 *.pem
 app-example
+
+# Ignore Python virtual environment
+venv/
+**/venv/
+
+# Ignore ML models
+*.h5
+*.pkl
+*.pt
+*.joblib
