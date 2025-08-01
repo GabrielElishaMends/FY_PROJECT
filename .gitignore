@@ -1,0 +1,75 @@
+# =========================
+# General
+# =========================
+.env
+*.env
+*.log
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# =========================
+# Node.js / JavaScript
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pkl
+*.sqlite3
+*.ipynb_checkpoints
+
+# =========================
+# React Native / Expo
+# =========================
+# Expo-specific
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# Metro cache
+.metro-health-check*
+metro-cache/
+*.bundle
+
+# Build artifacts
+*.apk
+*.apks
+*.aab
+*.ipa
+*.xcarchive
+android/
+ios/
+
+# Native signing credentials (DO NOT commit)
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# IDE / Editor Files
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Others (Optional)
+# =========================
+*.pem
+app-example
