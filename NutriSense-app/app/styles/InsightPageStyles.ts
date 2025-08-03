@@ -142,7 +142,7 @@ const InsightsPageStyle = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   nutrientInsightCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#e0f5e0',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,

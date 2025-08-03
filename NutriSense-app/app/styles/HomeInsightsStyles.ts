@@ -76,7 +76,7 @@ const HomeInsightsStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   nutrientInsightCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#e0f5e0',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -111,10 +111,10 @@ const HomeInsightsStyles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
+    fontWeight: 'bold',
   },
   infoValue: {
     fontSize: 14,
-    fontWeight: 'bold',
   },
   complexityLabel: {
     fontSize: 14,

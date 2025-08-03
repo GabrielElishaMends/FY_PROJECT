@@ -111,7 +111,7 @@ const FoodInsightsScreen: React.FC = () => {
                             {food.name}
                           </Text>
                           <Text style={InsightsPageStyle.foodCalories}>
-                            {food.numCalories} calories per serving
+                            {food.numCalories} kcal per serving
                           </Text>
                         </LinearGradient>
                       </ImageBackground>

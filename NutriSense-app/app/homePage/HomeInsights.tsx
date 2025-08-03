@@ -270,7 +270,7 @@ const HomeInsights: React.FC<HomeInsightsProps> = ({
         >
           <Text style={HomeInsightsStyles.foodName}>{foodName}</Text>
           <Text style={HomeInsightsStyles.foodCalories}>
-            {numCalories} calories per serving
+            {numCalories} kcal per serving
           </Text>
         </LinearGradient>
       </ImageBackground>

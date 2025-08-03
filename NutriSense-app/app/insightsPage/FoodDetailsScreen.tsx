@@ -31,7 +31,7 @@ const FoodDetailsScreen = () => {
   const [foodDetails, setFoodDetails] = useState(null);
   const [activeTab, setActiveTab] = useState<
     'Digestive' | 'Health' | 'Nutrients'
-  >('Digestive');
+  >('Nutrients'); // Changed default tab to 'Nutrients'
 
   useEffect(() => {
     const fetchFoodDetails = async () => {
@@ -76,7 +76,7 @@ const FoodDetailsScreen = () => {
                       {foodDetails.name}
                     </Text>
                     <Text style={InsightsPageStyle.foodCalories}>
-                      {foodDetails.numCalories} calories per serving
+                      {foodDetails.numCalories} kcal per serving
                     </Text>
                   </LinearGradient>
                 </ImageBackground>
@@ -85,7 +85,7 @@ const FoodDetailsScreen = () => {
               {/* Tabs */}
               <View style={InsightsPageStyle.insightsContainer}>
                 <View style={InsightsPageStyle.tabBar}>
-                  {(['Digestive', 'Health', 'Nutrients'] as const).map(
+                  {(['Nutrients', 'Digestive', 'Health'] as const).map(
                     (tab) => (
                       <TouchableOpacity
                         key={tab}
@@ -110,6 +110,17 @@ const FoodDetailsScreen = () => {
                 </View>
 
                 {/* Tab Content */}
+                {activeTab === 'Nutrients' &&
+                  renderNutrientsTab(
+                    (foodDetails.nutrientBreakdown || []).map((n: any) => ({
+                      label: n.nutrient,
+                      value: n.info,
+                      width: n.percentDailyValue
+                        ? n.percentDailyValue.toString()
+                        : '0',
+                      color: n.color || '#6b7280',
+                    }))
+                  )}
                 {activeTab === 'Digestive' &&
                   renderDigestiveTab({
                     foodName: foodDetails.name,
@@ -125,17 +136,6 @@ const FoodDetailsScreen = () => {
                     benefits: foodDetails.benefits,
                     cautions: foodDetails.cautions,
                   })}
-                {activeTab === 'Nutrients' &&
-                  renderNutrientsTab(
-                    (foodDetails.nutrientBreakdown || []).map((n: any) => ({
-                      label: n.nutrient,
-                      value: n.info,
-                      width: n.percentDailyValue
-                        ? n.percentDailyValue.toString()
-                        : '0',
-                      color: n.color || '#6b7280',
-                    }))
-                  )}
               </View>
             </View>
           </ScrollView>
