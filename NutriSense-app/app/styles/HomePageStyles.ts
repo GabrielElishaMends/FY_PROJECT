@@ -4,13 +4,14 @@ import colors from '.././config/colors';
 
 const HomePageStyles = StyleSheet.create({
   activeButton: {
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.tertiary,
   },
   analyzeButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
+    marginBottom: 10,
   },
   appLogo: {
     width: 30,
@@ -82,7 +83,9 @@ const HomePageStyles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    // borderBottomColor: '#FFF',
+    borderBottomColor: '#b9b8b8ff',
+    // borderBottomColor: colors.tertiary,
     backgroundColor: colors.secondary,
   },
   imagePreviewContainer: {
@@ -258,7 +261,12 @@ const HomePageStyles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 14,
     fontFamily: 'Poppins-SemiBold',
-    color: '#333',
+    color: colors.tertiary,
+    fontWeight: 'bold',
+  },
+  toggleTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   topIcon: {
     marginBottom: 12,

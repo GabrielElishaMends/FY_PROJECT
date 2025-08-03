@@ -40,13 +40,23 @@ export default function TabLayout() {
         },
       }}
     >
-      {/* Home Tab */}
+      {/* Dashboard Tab - First Tab */}
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="dashboard" size={28} color={color} />
+          ),
+        }}
+      />
+      {/* Food Scanner Tab */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Scan Food',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <MaterialIcons name="camera-alt" size={28} color={color} />
           ),
         }}
       />

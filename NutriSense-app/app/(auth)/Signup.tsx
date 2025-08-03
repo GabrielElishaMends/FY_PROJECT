@@ -94,7 +94,7 @@ const Signup = () => {
       });
 
       Alert.alert('Success', 'Account created successfully!');
-      router.push('/homePage/homeScreen');
+      router.push('/(auth)/UserInfoScreen');
     } catch (error) {
       console.error(error);
       if (error instanceof FirebaseError) {

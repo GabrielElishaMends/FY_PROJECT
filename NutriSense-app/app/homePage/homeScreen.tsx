@@ -111,7 +111,7 @@ const HomeScreen = () => {
         uri: image,
         name: `food.${extension || 'jpg'}`,
         type: mimeType,
-      });
+      } as any);
 
       // Call your Flask backend for prediction
       const response = await axios.post(
@@ -135,17 +135,9 @@ const HomeScreen = () => {
       });
       const foodDetails = foodDetailsResponse.data;
 
-      // Save to Firestore
-      await saveFoodHistory({
-        userId: auth.currentUser.uid,
-        imageUri: imageUri,
-        foodName: foodDetails.name,
-        calories: foodDetails.numCalories,
-        createdAt: new Date().toISOString(), // Add timestamp
-      });
-
-      // Set the image URI in the searchedFood object
+      // Set the image URI in the searchedFood object (don't save automatically)
       foodDetails.imageUri = imageUri;
+      foodDetails.capturedImage = image; // Store the original captured image
       setSearchedFood(foodDetails);
       setIsAnalyzed(true);
       setAiResult({ predicted_class, confidence });
@@ -183,24 +175,17 @@ const HomeScreen = () => {
       const response = await axios.get(`${BackendLink}/search`, {
         params: { query: food.trim() },
       });
-      setSearchedFood(response.data);
+      const foodDetails = response.data;
+
+      // Don't save automatically - let user choose
+      const foodKey = foodDetails.name?.toLowerCase().replace(/_/g, ' ').trim();
+      const defaultImage = foodImages[foodKey] || null;
+
+      // Store the default image for potential saving later
+      foodDetails.defaultImage = defaultImage;
+
+      setSearchedFood(foodDetails);
       setIsAnalyzed(true);
-
-      if (auth.currentUser) {
-        const foodKey = response.data.name
-          ?.toLowerCase()
-          .replace(/_/g, ' ')
-          .trim();
-        const defaultImage = foodImages[foodKey] || null;
-
-        await saveFoodHistory({
-          userId: auth.currentUser.uid,
-          imageUri: defaultImage,
-          foodName: response.data.name,
-          calories: response.data.numCalories,
-          createdAt: new Date().toISOString(), // Add timestamp
-        });
-      }
     } catch (error: any) {
       setSearchedFood(null);
       setIsAnalyzed(false);
@@ -208,6 +193,43 @@ const HomeScreen = () => {
         error?.response?.data?.message || 'Food not found. Try another name.'
       );
     }
+  };
+
+  // Function to save food to history
+  const handleSaveToHistory = async () => {
+    if (!searchedFood || !auth.currentUser) return;
+
+    try {
+      const imageToSave = searchedFood.imageUri || searchedFood.defaultImage;
+
+      await saveFoodHistory({
+        userId: auth.currentUser.uid,
+        imageUri: imageToSave,
+        foodName: searchedFood.name,
+        calories: searchedFood.numCalories,
+        createdAt: new Date().toISOString(),
+        portionMultiplier: searchedFood.portionMultiplier || 1,
+      });
+
+      alert('Food saved to your nutrition history!');
+
+      // Reset to scan/search again
+      setIsAnalyzed(false);
+      setSearchedFood(null);
+      setImage(null);
+      setFood('');
+    } catch (error) {
+      console.error('Error saving food to history:', error);
+      alert('Failed to save food to history. Please try again.');
+    }
+  };
+
+  // Function to ignore and go back to scanning/searching
+  const handleIgnoreFood = () => {
+    setIsAnalyzed(false);
+    setSearchedFood(null);
+    setImage(null);
+    setFood('');
   };
 
   return (
@@ -236,8 +258,19 @@ const HomeScreen = () => {
                     ]}
                     activeOpacity={0.8}
                   >
-                    <Feather name="camera" size={16} color="#000" />
-                    <Text style={HomePageStyles.toggleText}>Camera</Text>
+                    <Feather
+                      name="camera"
+                      size={16}
+                      color={active === 'camera' ? '#fff' : '#4CAF50'}
+                    />
+                    <Text
+                      style={[
+                        HomePageStyles.toggleText,
+                        active === 'camera' && HomePageStyles.toggleTextActive,
+                      ]}
+                    >
+                      Camera
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -248,8 +281,19 @@ const HomeScreen = () => {
                     ]}
                     activeOpacity={0.8}
                   >
-                    <Feather name="search" size={16} color="#000" />
-                    <Text style={HomePageStyles.toggleText}>Search</Text>
+                    <Feather
+                      name="search"
+                      size={16}
+                      color={active === 'search' ? '#fff' : '#4CAF50'}
+                    />
+                    <Text
+                      style={[
+                        HomePageStyles.toggleText,
+                        active === 'search' && HomePageStyles.toggleTextActive,
+                      ]}
+                    >
+                      Search
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -319,13 +363,16 @@ const HomeScreen = () => {
                             />
                           )}
 
-                          <TouchableOpacity
-                            style={HomePageStyles.closeButton}
-                            onPress={() => setImage(null)}
-                            activeOpacity={0.7}
-                          >
-                            <Feather name="x" size={24} color="#fff" />
-                          </TouchableOpacity>
+                          {/* Only show close button when not scanning */}
+                          {!isScanning && (
+                            <TouchableOpacity
+                              style={HomePageStyles.closeButton}
+                              onPress={() => setImage(null)}
+                              activeOpacity={0.7}
+                            >
+                              <Feather name="x" size={24} color="#fff" />
+                            </TouchableOpacity>
+                          )}
                         </View>
 
                         <TouchableOpacity
@@ -392,51 +439,83 @@ const HomeScreen = () => {
                       setImage(null);
                     }}
                   />
+
+                  {/* Action Buttons */}
+                  <View style={actionButtonStyles.container}>
+                    <TouchableOpacity
+                      style={actionButtonStyles.saveButton}
+                      onPress={handleSaveToHistory}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="plus-circle" size={20} color="#fff" />
+                      <Text style={actionButtonStyles.saveButtonText}>
+                        Add to track my calories
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={actionButtonStyles.ignoreButton}
+                      onPress={handleIgnoreFood}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="x-circle" size={20} color="#666" />
+                      <Text style={actionButtonStyles.ignoreButtonText}>
+                        Skip & Scan Again
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </>
               )
             )}
           </View>
         </View>
       </ScrollView>
-
-      {/* Fixed FAB - only show when insights are displayed */}
-      {isAnalyzed && searchedFood && (
-        <TouchableOpacity
-          style={fabStyles.fab}
-          onPress={() => {
-            setIsAnalyzed(false);
-            setSearchedFood(null);
-            setImage(null);
-          }}
-          activeOpacity={0.8}
-        >
-          <Feather name="plus" size={24} color="#fff" />
-        </TouchableOpacity>
-      )}
     </SafeAreaView>
   );
 };
 
-const fabStyles = {
-  fab: {
-    position: 'absolute' as const,
-    bottom: 20,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+const actionButtonStyles = {
+  container: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 8, // Reduced to push buttons to edges
+    paddingVertical: 20,
+    paddingBottom: 20, // Reduced bottom padding
+    gap: 16, // Increased gap between buttons
+  },
+  saveButton: {
+    flex: 1,
     backgroundColor: '#4CAF50',
-    justifyContent: 'center' as const,
+    flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    zIndex: 9999,
+    justifyContent: 'center' as const,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  ignoreButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  ignoreButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 };
 

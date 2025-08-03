@@ -462,7 +462,8 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   botBubble: {
-    backgroundColor: '#f0f0f0',
+    // backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     marginLeft: 8,
   },
   messageText: {
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
   },
   typingBubble: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff',
     marginLeft: 8,
     padding: 8,
     paddingHorizontal: 12,
