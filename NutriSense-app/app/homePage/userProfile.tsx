@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -31,8 +32,8 @@ const UserProfile = () => {
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(false);
+  const [userHealthInfo, setUserHealthInfo] = useState<any>(null);
   const authContext = useAuth();
-  const logout = authContext?.logout;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -43,6 +44,16 @@ const UserProfile = () => {
           const data = userDoc.data();
           setUserName(`${data.firstName ?? ''} ${data.lastName ?? ''}`);
           setProfileImage(data.profileImage ?? null);
+
+          // Set health information
+          setUserHealthInfo({
+            age: data.age,
+            gender: data.gender,
+            height: data.height,
+            weight: data.weight,
+            activityLevel: data.activityLevel,
+            dailyCalories: data.dailyCalories,
+          });
         }
       }
     });
@@ -56,92 +67,180 @@ const UserProfile = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      // Reset the entire navigation stack and go to login
+      router.dismissAll();
       router.replace('/(auth)/signlog');
     } catch (error) {
       console.error('Error signing out: ', error);
     }
   };
 
-  const handleLogoutContext = () => {
-    if (logout) {
-      logout();
-    } else {
-      console.warn('Logout function is not available.');
+  const handleLogoutContext = async () => {
+    try {
+      await signOut(auth);
+      router.dismissAll();
+      router.replace('/(auth)/signlog');
+    } catch (error) {
+      console.error('Error signing out: ', error);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.headerbg}>
-          <View style={styles.header}>
-            <View style={styles.headerTab}>
-              <TouchableOpacity
-                style={styles.backbutton}
-                onPress={handleGoBack}
-              >
-                <Feather name="arrow-left" size={30} color="#fff"/>
-              </TouchableOpacity>
-              <Text style={styles.title}>User Profile</Text>
-            </View>
-            <View style={styles.userPro}>
-              {profileImage ? (
-                <Image source={{ uri: profileImage }} style={styles.userPic} />
-              ) : (
-                <View style={styles.userPic}>
-                  <Feather name="user" size={80} color="#ccc" />
-                </View>
-              )}
-              <Text style={styles.userName}>{userName || 'User'}</Text>
-              <Text style={styles.userEmail}>
-                {userEmail || 'User not loged in'}
-              </Text>
-            </View>
+
+      {/* Single ScrollView containing everything */}
+      <ScrollView
+        style={styles.mainScrollContainer}
+        contentContainerStyle={styles.mainScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerTab}>
+            <TouchableOpacity style={styles.backbutton} onPress={handleGoBack}>
+              <Feather name="arrow-left" size={30} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.title}>User Profile</Text>
+          </View>
+
+          {/* User Profile Info */}
+          <View style={styles.userPro}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.userPic} />
+            ) : (
+              <View style={styles.userPic}>
+                <Feather name="user" size={80} color="#ccc" />
+              </View>
+            )}
+            <Text style={styles.userName}>{userName || 'User'}</Text>
+            <Text style={styles.userEmail}>
+              {userEmail || 'User not logged in'}
+            </Text>
           </View>
         </View>
-        {/* Cards */}
-        <View style={styles.cardContainer}>
-          <TouchableOpacity
-            style={[styles.card, styles.coloredCard]}
-            activeOpacity={0.9}
-            onPress={() => router.push('/homePage/EditProfile')}
-          >
-            <View style={styles.cardLeft}>
+
+        {/* White Content Area */}
+        <View style={styles.contentArea}>
+          {/* Health Information Cards */}
+          {userHealthInfo && (
+            <View style={styles.healthInfoContainer}>
+              <Text style={styles.healthInfoTitle}>Health Information</Text>
+              <View style={styles.healthCards}>
+                <View style={styles.healthCard}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={20}
+                    color={colors.tertiary}
+                  />
+                  <Text style={styles.healthLabel}>Age</Text>
+                  <Text style={styles.healthValue}>
+                    {userHealthInfo.age} years
+                  </Text>
+                </View>
+                <View style={styles.healthCard}>
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={colors.tertiary}
+                  />
+                  <Text style={styles.healthLabel}>Gender</Text>
+                  <Text style={styles.healthValue}>
+                    {userHealthInfo.gender === 'male' ? 'Male' : 'Female'}
+                  </Text>
+                </View>
+                <View style={styles.healthCard}>
+                  <Ionicons
+                    name="resize-outline"
+                    size={20}
+                    color={colors.tertiary}
+                  />
+                  <Text style={styles.healthLabel}>Height</Text>
+                  <Text style={styles.healthValue}>
+                    {userHealthInfo.height} cm
+                  </Text>
+                </View>
+                <View style={styles.healthCard}>
+                  <Ionicons
+                    name="fitness-outline"
+                    size={20}
+                    color={colors.tertiary}
+                  />
+                  <Text style={styles.healthLabel}>Weight</Text>
+                  <Text style={styles.healthValue}>
+                    {userHealthInfo.weight} kg
+                  </Text>
+                </View>
+                <View style={styles.healthCard}>
+                  <Ionicons
+                    name="flash-outline"
+                    size={20}
+                    color={colors.tertiary}
+                  />
+                  <Text style={styles.healthLabel}>Activity</Text>
+                  <Text style={styles.healthValue}>
+                    {userHealthInfo.activityLevel
+                      ?.replace('_', ' ')
+                      .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                  </Text>
+                </View>
+                <View style={styles.healthCard}>
+                  <Ionicons
+                    name="flame-outline"
+                    size={20}
+                    color={colors.tertiary}
+                  />
+                  <Text style={styles.healthLabel}>Daily Calories</Text>
+                  <Text style={styles.healthValue}>
+                    {userHealthInfo.dailyCalories} kcal
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Action Cards */}
+          <View style={styles.cardContainer}>
+            <TouchableOpacity
+              style={[styles.card, styles.coloredCard]}
+              activeOpacity={0.9}
+              onPress={() => router.push('/homePage/EditProfile')}
+            >
+              <View style={styles.cardLeft}>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={24}
+                  style={[styles.icon, styles.coloredCardIcon]}
+                />
+                <Text style={[styles.cardText, styles.coloredCardText]}>
+                  Edit Profile
+                </Text>
+              </View>
               <Ionicons
-                name="person-circle-outline"
+                name="chevron-forward-outline"
                 size={24}
                 style={[styles.icon, styles.coloredCardIcon]}
               />
-              <Text style={[styles.cardText, styles.coloredCardText]}>
-                Edit Profile
-              </Text>
-            </View>
-            <Ionicons
-              name="chevron-forward-outline"
-              size={24}
-              style={[styles.icon, styles.coloredCardIcon]}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.card, styles.coloredCard]}
-            activeOpacity={0.9}
-            onPress={handleLogout}
-          >
-            <View style={styles.cardLeft}>
-              <Ionicons
-                name="log-out-outline"
-                size={24}
-                style={styles.coloredCardIcon}
-              />
-              <Text style={[styles.cardText, styles.coloredCardText]}>
-                Logout
-              </Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.card, styles.coloredCard]}
+              activeOpacity={0.9}
+              onPress={handleLogout}
+            >
+              <View style={styles.cardLeft}>
+                <Ionicons
+                  name="log-out-outline"
+                  size={24}
+                  style={styles.coloredCardIcon}
+                />
+                <Text style={[styles.cardText, styles.coloredCardText]}>
+                  Logout
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -149,9 +248,38 @@ const UserProfile = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    // backgroundColor: '#fff',
     backgroundColor: colors.tertiary,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  mainScrollContainer: {
+    flex: 1,
+  },
+  mainScrollContent: {
+    flexGrow: 1,
+  },
+  headerSection: {
+    backgroundColor: colors.tertiary,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  contentArea: {
+    backgroundColor: '#fff',
+    flex: 1,
+    marginTop: -20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 50,
   },
   container: {
     flex: 1,
@@ -159,17 +287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   header: {
-    flex: 1,
     alignItems: 'center',
-  },
-  headerbg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 130,
-    backgroundColor: colors.tertiary,
-    zIndex: 0,
   },
   headerTab: {
     flexDirection: 'row',
@@ -177,12 +295,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     position: 'relative',
-    paddingVertical: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
   },
   backbutton: {
     position: 'absolute',
-    left: 10,
-    
+    left: 20,
   },
   title: {
     fontSize: 20,
@@ -199,20 +317,20 @@ const styles = StyleSheet.create({
     marginTop: 25,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: colors.tertiary,
+    borderColor: '#fff',
     backgroundColor: '#f0f0f0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   userName: {
-    color: colors.tertiary,
+    color: '#fff',
     fontSize: 23,
     fontWeight: 'bold',
     marginTop: 8,
     letterSpacing: 1,
   },
   userEmail: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 15,
@@ -220,12 +338,66 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     fontSize: 17,
+    marginBottom: 20,
   },
   cardContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    marginTop: 30,
+  },
+  healthInfoContainer: {
+    marginTop: 10,
+    marginBottom: 20,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  healthInfoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.tertiary,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  healthCards: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  healthCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
     alignItems: 'center',
-    marginTop: 260,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  healthLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 5,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  healthValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.tertiary,
+    textAlign: 'center',
   },
   card: {
     width: '100%',

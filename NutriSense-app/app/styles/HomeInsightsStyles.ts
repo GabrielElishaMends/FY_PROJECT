@@ -76,7 +76,7 @@ const HomeInsightsStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   nutrientInsightCard: {
-    backgroundColor: '#e0f5e0',
+    backgroundColor: '#F4FAF7',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,

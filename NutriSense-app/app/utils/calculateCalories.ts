@@ -86,24 +86,32 @@ export const calculateWeeklyNeeds = (
 // Helper function for height/weight suggestions based on age groups
 export const getHeightSuggestions = (
   age: number
-): { min: number; max: number; unit: string } => {
-  if (age < 13) {
-    return { min: 120, max: 160, unit: 'cm' }; // Children
-  } else if (age < 18) {
-    return { min: 150, max: 180, unit: 'cm' }; // Teens
+): { min: number; max: number; unit: string; ageGroup: string } => {
+  if (age < 10) {
+    return { min: 110, max: 140, unit: 'cm', ageGroup: 'young children' }; // Young children
+  } else if (age >= 10 && age < 13) {
+    return { min: 130, max: 155, unit: 'cm', ageGroup: 'pre-teens' }; // Pre-teens
+  } else if (age >= 13 && age <= 15) {
+    return { min: 145, max: 170, unit: 'cm', ageGroup: 'early teens' }; // Early teens (12-15)
+  } else if (age >= 16 && age < 18) {
+    return { min: 155, max: 180, unit: 'cm', ageGroup: 'late teens' }; // Late teens
   } else {
-    return { min: 150, max: 200, unit: 'cm' }; // Adults
+    return { min: 150, max: 200, unit: 'cm', ageGroup: 'adults' }; // Adults
   }
 };
 
 export const getWeightSuggestions = (
   age: number
-): { min: number; max: number; unit: string } => {
-  if (age < 13) {
-    return { min: 25, max: 60, unit: 'kg' }; // Children
-  } else if (age < 18) {
-    return { min: 40, max: 90, unit: 'kg' }; // Teens
+): { min: number; max: number; unit: string; ageGroup: string } => {
+  if (age < 10) {
+    return { min: 20, max: 45, unit: 'kg', ageGroup: 'young children' }; // Young children
+  } else if (age >= 10 && age < 13) {
+    return { min: 30, max: 60, unit: 'kg', ageGroup: 'pre-teens' }; // Pre-teens
+  } else if (age >= 13 && age <= 15) {
+    return { min: 40, max: 75, unit: 'kg', ageGroup: 'early teens' }; // Early teens (12-15)
+  } else if (age >= 16 && age < 18) {
+    return { min: 45, max: 85, unit: 'kg', ageGroup: 'late teens' }; // Late teens
   } else {
-    return { min: 45, max: 120, unit: 'kg' }; // Adults
+    return { min: 45, max: 120, unit: 'kg', ageGroup: 'adults' }; // Adults
   }
 };

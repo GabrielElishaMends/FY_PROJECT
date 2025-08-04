@@ -294,6 +294,159 @@ const InsightsPageStyle = StyleSheet.create({
     textAlign: 'left',
     color: colors.gray,
   },
+
+  // Modern Styles for FoodInsightsScreen
+  modernSafeContainer: {
+    flex: 1,
+    backgroundColor: colors.secondary,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+
+  modernHeaderSection: {
+    backgroundColor: colors.tertiary,
+    paddingVertical: 25,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  titleContainer: {
+    flex: 1,
+  },
+
+  modernPageTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+
+  modernPageSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 22,
+  },
+
+  headerIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.secondary,
+  },
+
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+
+  modernScrollView: {
+    flex: 1,
+    backgroundColor: colors.secondary,
+  },
+
+  scrollContent: {
+    paddingBottom: 30,
+  },
+
+  modernContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 25,
+  },
+
+  modernFoodCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+
+  modernHeaderImage: {
+    width: '100%',
+    height: 200,
+    justifyContent: 'flex-end',
+  },
+
+  foodImageStyle: {
+    borderRadius: 20,
+  },
+
+  modernGradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    padding: 20,
+    borderRadius: 20,
+  },
+
+  foodContentContainer: {
+    width: '100%',
+  },
+
+  modernFoodName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  caloriesBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+  },
+
+  modernFoodCalories: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+
+  tapIndicator: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
 });
 
 export default InsightsPageStyle;

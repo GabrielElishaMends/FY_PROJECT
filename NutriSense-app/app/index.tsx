@@ -25,6 +25,6 @@ export default function Index() {
   if (!isLoggedIn) {
     return <Redirect href="/(auth)/signlog" />;
   }
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href="/(tabs)/dash_board" />;
   // return isLoggedIn ? <Redirect href="/(tabs)" /> : <Redirect href="/(auth)/signlog" />;
 }

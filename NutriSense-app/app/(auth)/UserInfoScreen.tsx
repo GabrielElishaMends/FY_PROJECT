@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,12 @@ import {
   Modal,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import colors from '../config/colors';
-import { auth } from '../../firebaseConfig';
+import { auth, db } from '../../firebaseConfig';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { setDoc, doc } from 'firebase/firestore';
+import { uploadImage } from '../utils/uploadImage';
 import {
   UserHealthInfo,
   calculateDailyCalories,
@@ -23,9 +26,12 @@ import {
   getHeightSuggestions,
   getWeightSuggestions,
 } from '../utils/calculateCalories';
-import { saveUserProfile } from '../utils/firebaseFoodUtils';
 
 const UserInfoScreen = () => {
+  // Get signup data from navigation params
+  const params = useLocalSearchParams();
+  const { firstName, lastName, email, password, profileImage } = params;
+
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [height, setHeight] = useState('');
@@ -41,6 +47,20 @@ const UserInfoScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showHeightModal, setShowHeightModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
+
+  // Check if this is coming from signup flow
+  const isFromSignup = firstName && lastName && email && password;
+
+  useEffect(() => {
+    if (!isFromSignup) {
+      // If not from signup, check if user is already authenticated
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Error', 'You need to be logged in to access this page.');
+        router.push('/(auth)/signlog');
+      }
+    }
+  }, [isFromSignup]);
 
   const activityOptions = [
     {
@@ -101,14 +121,32 @@ const UserInfoScreen = () => {
   const handleSubmit = async () => {
     if (!validateInputs()) return;
 
-    const user = auth.currentUser;
-    if (!user) {
-      Alert.alert('Error', 'No authenticated user found.');
-      return;
-    }
-
+    console.log('🔵 Starting account creation and profile setup');
     setLoading(true);
+
     try {
+      let user;
+
+      if (isFromSignup) {
+        // Create Firebase account with the signup data
+        console.log('🔵 Creating new account for:', email);
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email as string,
+          password as string
+        );
+        user = userCredential.user;
+        console.log('✅ Account created with UID:', user.uid);
+      } else {
+        // Use existing authenticated user
+        user = auth.currentUser;
+        if (!user) {
+          Alert.alert('Error', 'No authenticated user found.');
+          return;
+        }
+        console.log('🔵 Using existing user UID:', user.uid);
+      }
+
       const userHealthInfo: UserHealthInfo = {
         age: parseInt(age),
         gender: gender as 'male' | 'female',
@@ -117,14 +155,34 @@ const UserInfoScreen = () => {
         activityLevel: activityLevel as UserHealthInfo['activityLevel'],
       };
 
+      console.log('🔵 User health info:', userHealthInfo);
+
       // Calculate daily calories
       const dailyCalories = calculateDailyCalories(userHealthInfo);
+      console.log('🔵 Calculated daily calories:', dailyCalories);
 
       // Calculate macronutrients
       const nutritionNeeds = calculateMacronutrients(dailyCalories);
+      console.log('🔵 Calculated nutrition needs:', nutritionNeeds);
 
-      // Save to Firebase
-      await saveUserProfile(user.uid, {
+      // Upload profile image if provided
+      let profileImageUrl = null;
+      if (isFromSignup && profileImage && profileImage !== '') {
+        console.log('🔵 Uploading profile image...');
+        profileImageUrl = await uploadImage(profileImage as string, user.uid);
+        console.log('✅ Profile image uploaded:', profileImageUrl);
+      }
+
+      // Prepare complete user profile data
+      const completeProfileData = {
+        // Basic info from signup
+        ...(isFromSignup && {
+          firstName: firstName as string,
+          lastName: lastName as string,
+          email: user.email,
+          profileImage: profileImageUrl,
+        }),
+        // Health info
         age: userHealthInfo.age,
         gender: userHealthInfo.gender,
         height: userHealthInfo.height,
@@ -134,24 +192,43 @@ const UserInfoScreen = () => {
         dailyCarbs: nutritionNeeds.dailyCarbs,
         dailyProtein: nutritionNeeds.dailyProtein,
         dailyFat: nutritionNeeds.dailyFat,
-      });
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      console.log('🔵 Complete profile data to save:', completeProfileData);
+
+      // Save complete profile to Firebase
+      await setDoc(doc(db, 'users', user.uid), completeProfileData);
+      console.log('✅ Complete profile saved successfully!');
 
       Alert.alert(
         'Success!',
-        `Your daily nutrition needs have been calculated:\n\n• Calories: ${nutritionNeeds.dailyCalories} kcal\n• Carbs: ${nutritionNeeds.dailyCarbs}g\n• Protein: ${nutritionNeeds.dailyProtein}g\n• Fat: ${nutritionNeeds.dailyFat}g`,
+        `${
+          isFromSignup ? 'Account created and nutrition' : 'Nutrition'
+        } needs calculated:\n\n• Calories: ${
+          nutritionNeeds.dailyCalories
+        } kcal\n• Carbs: ${nutritionNeeds.dailyCarbs}g\n• Protein: ${
+          nutritionNeeds.dailyProtein
+        }g\n• Fat: ${nutritionNeeds.dailyFat}g`,
         [
           {
             text: 'Continue',
-            onPress: () => router.push('/(tabs)/dashboard'),
+            onPress: () => router.push('/(tabs)/dash_board'),
           },
         ]
       );
     } catch (error) {
-      console.error('Error saving user info:', error);
-      Alert.alert(
-        'Error',
-        'Failed to save your information. Please try again.'
-      );
+      console.error('❌ Error in handleSubmit:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('email-already-in-use')) {
+          Alert.alert('Error', 'This email address is already registered.');
+        } else {
+          Alert.alert('Error', `Failed to create account: ${error.message}`);
+        }
+      } else {
+        Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -167,8 +244,7 @@ const UserInfoScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Height Suggestions</Text>
             <Text style={styles.modalSubtitle}>
-              Typical range for{' '}
-              {ageNum < 13 ? 'children' : ageNum < 18 ? 'teens' : 'adults'}:
+              Typical height range for {suggestions.ageGroup} (age {ageNum}):
             </Text>
             <Text style={styles.suggestionText}>
               {suggestions.min} - {suggestions.max} {suggestions.unit}
@@ -191,12 +267,28 @@ const UserInfoScreen = () => {
                 style={styles.suggestionButton}
                 onPress={() => {
                   setHeight(
-                    ((suggestions.min + suggestions.max) / 2).toString()
+                    Math.round(
+                      (suggestions.min + suggestions.max) / 2
+                    ).toString()
                   );
                   setShowHeightModal(false);
                 }}
               >
-                <Text style={styles.suggestionButtonText}>Use Average</Text>
+                <Text style={styles.suggestionButtonText}>
+                  Use {Math.round((suggestions.min + suggestions.max) / 2)} cm
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setHeight(suggestions.max.toString());
+                  setShowHeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {suggestions.max} cm
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -222,8 +314,7 @@ const UserInfoScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Weight Suggestions</Text>
             <Text style={styles.modalSubtitle}>
-              Typical range for{' '}
-              {ageNum < 13 ? 'children' : ageNum < 18 ? 'teens' : 'adults'}:
+              Typical weight range for {suggestions.ageGroup} (age {ageNum}):
             </Text>
             <Text style={styles.suggestionText}>
               {suggestions.min} - {suggestions.max} {suggestions.unit}
@@ -246,12 +337,28 @@ const UserInfoScreen = () => {
                 style={styles.suggestionButton}
                 onPress={() => {
                   setWeight(
-                    ((suggestions.min + suggestions.max) / 2).toString()
+                    Math.round(
+                      (suggestions.min + suggestions.max) / 2
+                    ).toString()
                   );
                   setShowWeightModal(false);
                 }}
               >
-                <Text style={styles.suggestionButtonText}>Use Average</Text>
+                <Text style={styles.suggestionButtonText}>
+                  Use {Math.round((suggestions.min + suggestions.max) / 2)} kg
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setWeight(suggestions.max.toString());
+                  setShowWeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {suggestions.max} kg
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -282,20 +389,31 @@ const UserInfoScreen = () => {
               style={styles.backButton}
               onPress={() => router.back()}
             >
-              <Feather name="arrow-left" size={24} color="#000" />
+              <Feather name="arrow-left" size={24} color={colors.tertiary} />
             </TouchableOpacity>
             <Text style={styles.headerText}>Health Information</Text>
           </View>
 
           <Text style={styles.subtitle}>
-            Help us calculate your daily nutrition needs
+            {isFromSignup
+              ? 'Complete your account setup by providing health information'
+              : 'Help us calculate your daily nutrition needs'}
           </Text>
+
+          {/* Required Fields Note */}
+          <View style={styles.noteContainer}>
+            <Text style={styles.noteText}>
+              <Text style={styles.required}>*</Text> indicates required fields
+            </Text>
+          </View>
 
           {/* Form Fields */}
           <View style={styles.form}>
             {/* Age */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Age *</Text>
+              <Text style={styles.label}>
+                Age <Text style={styles.required}>*</Text>
+              </Text>
               <TextInput
                 style={styles.input}
                 value={age}
@@ -308,7 +426,9 @@ const UserInfoScreen = () => {
 
             {/* Gender */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Gender *</Text>
+              <Text style={styles.label}>
+                Gender <Text style={styles.required}>*</Text>
+              </Text>
               <View style={styles.genderContainer}>
                 <TouchableOpacity
                   style={[
@@ -358,7 +478,9 @@ const UserInfoScreen = () => {
 
             {/* Height */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Height (cm) *</Text>
+              <Text style={styles.label}>
+                Height (cm) <Text style={styles.required}>*</Text>
+              </Text>
               <View style={styles.inputWithButton}>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
@@ -379,7 +501,9 @@ const UserInfoScreen = () => {
 
             {/* Weight */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Weight (kg) *</Text>
+              <Text style={styles.label}>
+                Weight (kg) <Text style={styles.required}>*</Text>
+              </Text>
               <View style={styles.inputWithButton}>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
@@ -400,7 +524,9 @@ const UserInfoScreen = () => {
 
             {/* Activity Level */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Activity Level *</Text>
+              <Text style={styles.label}>
+                Activity Level <Text style={styles.required}>*</Text>
+              </Text>
               {activityOptions.map((option) => (
                 <TouchableOpacity
                   key={option.key}
@@ -445,7 +571,13 @@ const UserInfoScreen = () => {
             disabled={loading}
           >
             <Text style={styles.submitButtonText}>
-              {loading ? 'Calculating...' : 'Calculate My Nutrition Needs'}
+              {loading
+                ? isFromSignup
+                  ? 'Creating Account...'
+                  : 'Updating...'
+                : isFromSignup
+                ? 'Create Account & Calculate Nutrition'
+                : 'Calculate My Nutrition Needs'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -484,13 +616,27 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
+    color: colors.tertiary,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: 'center',
+  },
+  noteContainer: {
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 25,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.tertiary,
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   form: {
     flex: 1,
@@ -503,6 +649,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
+  },
+  required: {
+    color: '#FF0000',
+    fontWeight: 'bold',
   },
   input: {
     borderWidth: 1,
@@ -643,19 +793,23 @@ const styles = StyleSheet.create({
   },
   suggestionButtons: {
     flexDirection: 'row',
-    gap: 10,
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 15,
+    justifyContent: 'center',
   },
   suggestionButton: {
     backgroundColor: colors.tertiary,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
+    minWidth: 80,
   },
   suggestionButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
   modalCloseButton: {
     paddingVertical: 10,

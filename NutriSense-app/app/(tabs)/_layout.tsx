@@ -16,6 +16,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="dash_board"
       screenOptions={{
         // tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         tabBarActiveTintColor: '#4CAF50',
@@ -42,7 +43,7 @@ export default function TabLayout() {
     >
       {/* Dashboard Tab - First Tab */}
       <Tabs.Screen
-        name="dashboard"
+        name="dash_board"
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color }) => (

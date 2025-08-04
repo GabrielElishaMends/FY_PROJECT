@@ -55,7 +55,7 @@ const Signup = () => {
     }
   };
 
-  //Function to handle Signup with Firebase
+  //Function to handle Signup - collect data but don't create account yet
   const handleSignup = async () => {
     if (!firstName || !lastName || !email || !password) {
       Alert.alert('Error', 'All fields are required.');
@@ -70,45 +70,17 @@ const Signup = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      // Upload profile image if selected
-      let profileImageUrl = null;
-      if (image) {
-        profileImageUrl = await uploadImage(image, user.uid);
-      }
-
-      // Save user data to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+    // Navigate to UserInfoScreen with the signup data
+    router.push({
+      pathname: '/(auth)/UserInfoScreen',
+      params: {
         firstName,
         lastName,
-        email: user.email,
-        profileImage: profileImageUrl,
-      });
-
-      Alert.alert('Success', 'Account created successfully!');
-      router.push('/(auth)/UserInfoScreen');
-    } catch (error) {
-      console.error(error);
-      if (error instanceof FirebaseError) {
-        if (error.code === 'auth/email-already-in-use') {
-          Alert.alert('Error', 'The email address is already in use');
-        } else {
-          Alert.alert('Error', 'Signup failed. Please try again.');
-        }
-      } else {
-        Alert.alert('Error', 'An unexpected error occurred.');
-      }
-    } finally {
-      setLoading(false);
-    }
+        email,
+        password,
+        profileImage: image || '',
+      },
+    });
   };
 
   const handleGoBack = () => {
@@ -282,29 +254,14 @@ const Signup = () => {
                 }
               >
                 {loading ? (
-                  <Text style={styles.buttonText}>Signing up...</Text>
+                  <Text style={styles.buttonText}>Please wait...</Text>
                 ) : (
-                  <Text style={styles.buttonText}>Sign Up</Text>
+                  <Text style={styles.buttonText}>
+                    Continue to Health Setup
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
-
-            {/* OR Divider */}
-            {/* <View style={styles.orContainer}>
-              <View style={styles.line} />
-              <Text style={styles.orText}>OR</Text>
-              <View style={styles.line} />
-            </View> */}
-
-            {/* Continue with Google Button */}
-            {/* <TouchableOpacity
-              style={styles.googleButton}
-              onPress={() => router.push('/(auth)/Signup')}
-              activeOpacity={0.8}
-            >
-              <GoogleIcon width={24} height={24} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
-            </TouchableOpacity> */}
           </View>
         </View>
       </ScrollView>

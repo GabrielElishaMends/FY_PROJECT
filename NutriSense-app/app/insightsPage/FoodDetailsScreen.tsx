@@ -7,9 +7,13 @@ import {
   Text,
   TouchableOpacity,
   ImageBackground,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import InsightsPageStyle from '../styles/InsightPageStyles';
+import colors from '../config/colors';
 import axios from 'axios';
 import {
   renderDigestiveTab,
@@ -20,6 +24,19 @@ import { BackendLink } from '@/components/Default';
 import { useLocalSearchParams } from 'expo-router';
 import foodImages from '../../assets/foodImages/foodImages';
 
+interface FoodDetails {
+  _id: string;
+  name: string;
+  numCalories: number;
+  nutrientBreakdown?: any[];
+  digestionTime?: string;
+  timeToEat?: string;
+  digestionComplexity?: string;
+  additionalDigestionNotes?: string;
+  benefits?: string[];
+  cautions?: string[];
+}
+
 const getFoodImage = (name: string) => {
   if (!name) return null;
   const key = name.toLowerCase().replace(/_/g, ' ').trim();
@@ -28,7 +45,7 @@ const getFoodImage = (name: string) => {
 
 const FoodDetailsScreen = () => {
   const { foodId } = useLocalSearchParams();
-  const [foodDetails, setFoodDetails] = useState(null);
+  const [foodDetails, setFoodDetails] = useState<FoodDetails | null>(null);
   const [activeTab, setActiveTab] = useState<
     'Digestive' | 'Health' | 'Nutrients'
   >('Nutrients'); // Changed default tab to 'Nutrients'
@@ -46,22 +63,39 @@ const FoodDetailsScreen = () => {
     fetchFoodDetails();
   }, [foodId]);
 
-  const imageSource = getFoodImage(foodDetails?.name);
+  const imageSource = getFoodImage(foodDetails?.name || '');
 
   return (
     <View style={{ flex: 1 }}>
       {foodDetails ? (
-        <SafeAreaView style={InsightsPageStyle.safeContainer}>
-          <View style={InsightsPageStyle.contain}>
-            <Text style={InsightsPageStyle.pageTitle}>
-              {foodDetails.name} Insight
-            </Text>
-            <Text style={InsightsPageStyle.pageSubtitle}>
-              Learn about digestive properties and health benefits{' '}
-            </Text>
+        <SafeAreaView style={InsightsPageStyle.modernSafeContainer}>
+          <StatusBar
+            barStyle="light-content"
+            backgroundColor={colors.tertiary}
+          />
+          {/* Modern Header Section */}
+          <View style={InsightsPageStyle.modernHeaderSection}>
+            <View style={InsightsPageStyle.headerContent}>
+              <View style={InsightsPageStyle.titleContainer}>
+                <Text style={InsightsPageStyle.modernPageTitle}>
+                  {foodDetails.name} Insights
+                </Text>
+                <Text style={InsightsPageStyle.modernPageSubtitle}>
+                  Nutritional breakdown and health benefits
+                </Text>
+              </View>
+              <View style={InsightsPageStyle.headerIconContainer}>
+                <Feather name="pie-chart" size={24} color={colors.tertiary} />
+              </View>
+            </View>
           </View>
-          <ScrollView>
-            <View style={InsightsPageStyle.cont}>
+
+          <ScrollView
+            style={InsightsPageStyle.modernScrollView}
+            contentContainerStyle={InsightsPageStyle.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[InsightsPageStyle.cont, { marginTop: 20 }]}>
               <View style={InsightsPageStyle.headContainer}>
                 <ImageBackground
                   source={imageSource}
@@ -133,19 +167,19 @@ const FoodDetailsScreen = () => {
                 {activeTab === 'Health' &&
                   renderHealthTab({
                     foodName: foodDetails.name,
-                    benefits: foodDetails.benefits,
-                    cautions: foodDetails.cautions,
-                  })}
+                    benefits: foodDetails.benefits || [],
+                    cautions: foodDetails.cautions || [],
+                  } as any)}
               </View>
             </View>
           </ScrollView>
         </SafeAreaView>
       ) : (
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={{ marginTop: 10, color: '#555' }}>Loading...</Text>
+        <View style={InsightsPageStyle.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.tertiary} />
+          <Text style={InsightsPageStyle.loadingText}>
+            Loading food details...
+          </Text>
         </View>
       )}
     </View>

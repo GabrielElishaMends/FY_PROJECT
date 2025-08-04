@@ -33,7 +33,7 @@ const SignLog = () => {
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => router.push('/Login')}
+                onPress={() => router.push('/(auth)/Login')}
                 activeOpacity={0.9}
               >
                 <Text style={styles.buttonText}>Log In</Text>
@@ -42,7 +42,7 @@ const SignLog = () => {
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => router.push('/Signup')}
+                onPress={() => router.push('/(auth)/Signup')}
                 activeOpacity={0.9}
               >
                 <Text style={styles.buttonText}>Sign Up</Text>

@@ -261,7 +261,12 @@ export const saveUserProfile = async (
   profileData: Partial<UserProfile>
 ) => {
   try {
+    console.log('🔵 saveUserProfile called with userId:', userId);
+    console.log('🔵 saveUserProfile profileData:', profileData);
+
     const userDocRef = doc(db, 'users', userId);
+    console.log('🔵 Document reference created for path: users/' + userId);
+
     const updateData = {
       ...profileData,
       updatedAt: new Date(),
@@ -271,12 +276,16 @@ export const saveUserProfile = async (
     const userDoc = await getDoc(userDocRef);
     if (!userDoc.exists()) {
       updateData.createdAt = new Date();
+      console.log('🔵 New user profile - adding createdAt');
+    } else {
+      console.log('🔵 Existing user profile - updating');
     }
 
+    console.log('🔵 Final updateData to save:', updateData);
     await setDoc(userDocRef, updateData, { merge: true });
-    console.log('User profile saved successfully');
+    console.log('✅ User profile saved successfully to Firestore!');
   } catch (error) {
-    console.error('Error saving user profile:', error);
+    console.error('❌ Error saving user profile:', error);
     throw error;
   }
 };

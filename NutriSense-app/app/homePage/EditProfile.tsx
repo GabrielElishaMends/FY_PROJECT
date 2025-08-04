@@ -22,6 +22,12 @@ import colors from '../config/colors';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadImage } from '../utils/uploadImage';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import {
+  UserHealthInfo,
+  calculateDailyCalories,
+  calculateMacronutrients,
+} from '../utils/calculateCalories';
+import { reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 
 const EditProfile = () => {
   const navigation = useNavigation();
@@ -29,10 +35,54 @@ const EditProfile = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+
+  // Health information states
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | ''>('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [activityLevel, setActivityLevel] = useState<
+    | 'sedentary'
+    | 'lightly_active'
+    | 'moderately_active'
+    | 'very_active'
+    | 'extra_active'
+    | ''
+  >('');
+
+  const activityOptions = [
+    {
+      key: 'sedentary',
+      label: 'Sedentary',
+      description: 'Little or no exercise',
+    },
+    {
+      key: 'lightly_active',
+      label: 'Lightly Active',
+      description: 'Light exercise 1-3 days/week',
+    },
+    {
+      key: 'moderately_active',
+      label: 'Moderately Active',
+      description: 'Moderate exercise 3-5 days/week',
+    },
+    {
+      key: 'very_active',
+      label: 'Very Active',
+      description: 'Hard exercise 6-7 days/week',
+    },
+    {
+      key: 'extra_active',
+      label: 'Extra Active',
+      description: 'Very hard exercise & physical job',
+    },
+  ];
 
   useEffect(() => {
     // Fetch current user data
@@ -44,6 +94,13 @@ const EditProfile = () => {
           setFirstName(data.firstName || '');
           setLastName(data.lastName || '');
           setProfileImage(data.profileImage || null);
+
+          // Set health information
+          setAge(data.age?.toString() || '');
+          setGender(data.gender || '');
+          setHeight(data.height?.toString() || '');
+          setWeight(data.weight?.toString() || '');
+          setActivityLevel(data.activityLevel || '');
         }
       }
     };
@@ -53,18 +110,51 @@ const EditProfile = () => {
   const handleSave = async () => {
     try {
       if (user) {
-        // Update Firestore name fields
-        await updateDoc(doc(db, 'users', user.uid), {
+        // Recalculate nutrition needs if health info is provided
+        let updateData: any = {
           firstName,
           lastName,
           profileImage,
-        });
+          updatedAt: new Date(),
+        };
+
+        // If health information is provided, recalculate nutrition needs
+        if (age && gender && height && weight && activityLevel) {
+          const userHealthInfo: UserHealthInfo = {
+            age: parseInt(age),
+            gender: gender as 'male' | 'female',
+            height: parseFloat(height),
+            weight: parseFloat(weight),
+            activityLevel: activityLevel as UserHealthInfo['activityLevel'],
+          };
+
+          const dailyCalories = calculateDailyCalories(userHealthInfo);
+          const nutritionNeeds = calculateMacronutrients(dailyCalories);
+
+          updateData = {
+            ...updateData,
+            age: userHealthInfo.age,
+            gender: userHealthInfo.gender,
+            height: userHealthInfo.height,
+            weight: userHealthInfo.weight,
+            activityLevel: userHealthInfo.activityLevel,
+            dailyCalories: nutritionNeeds.dailyCalories,
+            dailyCarbs: nutritionNeeds.dailyCarbs,
+            dailyProtein: nutritionNeeds.dailyProtein,
+            dailyFat: nutritionNeeds.dailyFat,
+          };
+        }
+
+        // Update Firestore
+        await updateDoc(doc(db, 'users', user.uid), updateData);
+
         // Update displayName in Firebase Auth
         await updateProfile(user, {
           displayName: `${firstName} ${lastName}`,
           photoURL: profileImage || undefined,
         });
-        Alert.alert('Success', 'Profile updated!');
+
+        Alert.alert('Success', 'Profile updated successfully!');
         navigation.goBack();
       }
     } catch (error) {
@@ -75,15 +165,41 @@ const EditProfile = () => {
 
   const handleChangePassword = async () => {
     try {
-      if (user && newPassword.length >= 6) {
-        await updatePassword(user, newPassword);
-        Alert.alert('Success', 'Password updated!');
-        setNewPassword('');
-      } else {
-        Alert.alert('Error', 'Password must be at least 6 characters.');
+      if (!currentPassword) {
+        Alert.alert('Error', 'Please enter your current password.');
+        return;
       }
-    } catch (error) {
-      Alert.alert('Error', 'Could not update password.');
+
+      if (newPassword.length < 6) {
+        Alert.alert('Error', 'New password must be at least 6 characters.');
+        return;
+      }
+
+      if (user && user.email) {
+        // Re-authenticate the user
+        const credential = EmailAuthProvider.credential(
+          user.email,
+          currentPassword
+        );
+        await reauthenticateWithCredential(user, credential);
+
+        // Update password
+        await updatePassword(user, newPassword);
+        Alert.alert('Success', 'Password updated successfully!');
+        setNewPassword('');
+        setCurrentPassword('');
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/wrong-password') {
+        Alert.alert('Error', 'Current password is incorrect.');
+      } else if (error.code === 'auth/too-many-requests') {
+        Alert.alert(
+          'Error',
+          'Too many failed attempts. Please try again later.'
+        );
+      } else {
+        Alert.alert('Error', 'Could not update password. Please try again.');
+      }
       console.error(error);
     }
   };
@@ -111,54 +227,69 @@ const EditProfile = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      {/* Header background */}
-      <View style={styles.headerbg} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        {/* Single ScrollView containing everything */}
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.mainScrollContainer}
+          contentContainerStyle={styles.mainScrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.container}>
+          {/* Header Section */}
+          <View style={styles.headerSection}>
             <View style={styles.headerTab}>
               <TouchableOpacity
                 style={styles.backbutton}
                 onPress={() => navigation.goBack()}
               >
-                <Feather name="arrow-left" size={30} color="#fff"/>
+                <Feather name="arrow-left" size={30} color="#fff" />
               </TouchableOpacity>
               <Text style={styles.title}>Edit Profile</Text>
             </View>
-            <TouchableOpacity
-              style={styles.imagePicker}
-              onPress={handlePickImage}
-            >
-              {profileImage ? (
-                <>
-                  {imageLoading && (
-                    <ActivityIndicator
-                      size="large"
-                      color={colors.tertiary}
-                      style={StyleSheet.absoluteFill}
+
+            {/* Profile Image Picker */}
+            <View style={styles.profileImageContainer}>
+              <TouchableOpacity
+                style={styles.imagePicker}
+                onPress={handlePickImage}
+              >
+                {profileImage ? (
+                  <>
+                    {imageLoading && (
+                      <ActivityIndicator
+                        size="large"
+                        color={colors.tertiary}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    )}
+                    <Image
+                      source={{ uri: profileImage }}
+                      style={styles.profileImage}
+                      onLoadStart={() => setImageLoading(true)}
+                      onLoadEnd={() => setImageLoading(false)}
                     />
-                  )}
-                  <Image
-                    source={{ uri: profileImage }}
-                    style={styles.profileImage}
-                    onLoadStart={() => setImageLoading(true)}
-                    onLoadEnd={() => setImageLoading(false)}
-                  />
-                </>
-              ) : (
-                <Feather name="user" size={80} color="#ccc" />
-              )}
-              <View style={styles.editIcon}>
-                <Feather name="edit-2" size={20} color="#fff" />
-              </View>
-            </TouchableOpacity>
+                  </>
+                ) : (
+                  <Feather name="user" size={80} color="#ccc" />
+                )}
+                <View style={styles.editIcon}>
+                  <Feather name="edit-2" size={20} color="#fff" />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* White Content Area */}
+          <View style={styles.contentArea}>
+            {/* Basic Information Section */}
+            <Text style={[styles.sectionTitle, { marginTop: 10 }]}>
+              Basic Information
+            </Text>
+
             <TextInput
               style={styles.input}
               placeholder="First Name"
@@ -171,6 +302,7 @@ const EditProfile = () => {
               value={lastName}
               onChangeText={setLastName}
             />
+
             <TouchableOpacity
               style={styles.button}
               onPress={handleSave}
@@ -180,7 +312,152 @@ const EditProfile = () => {
                 {uploading ? 'Saving...' : 'Save Changes'}
               </Text>
             </TouchableOpacity>
+
+            {/* Health Information Section */}
+            <Text style={styles.sectionTitle}>Health Information</Text>
+
+            {/* Age */}
+            <TextInput
+              style={styles.input}
+              placeholder="Age"
+              value={age}
+              onChangeText={setAge}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+
+            {/* Gender */}
+            <Text style={styles.label}>Gender</Text>
+            <View style={styles.genderContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.genderButton,
+                  gender === 'male' && styles.genderButtonActive,
+                ]}
+                onPress={() => setGender('male')}
+              >
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color={gender === 'male' ? '#fff' : colors.tertiary}
+                />
+                <Text
+                  style={[
+                    styles.genderButtonText,
+                    gender === 'male' && styles.genderButtonTextActive,
+                  ]}
+                >
+                  Male
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.genderButton,
+                  gender === 'female' && styles.genderButtonActive,
+                ]}
+                onPress={() => setGender('female')}
+              >
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color={gender === 'female' ? '#fff' : colors.tertiary}
+                />
+                <Text
+                  style={[
+                    styles.genderButtonText,
+                    gender === 'female' && styles.genderButtonTextActive,
+                  ]}
+                >
+                  Female
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Height */}
+            <TextInput
+              style={styles.input}
+              placeholder="Height (cm)"
+              value={height}
+              onChangeText={setHeight}
+              keyboardType="numeric"
+            />
+
+            {/* Weight */}
+            <TextInput
+              style={styles.input}
+              placeholder="Weight (kg)"
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="numeric"
+            />
+
+            {/* Activity Level */}
+            <Text style={styles.label}>Activity Level</Text>
+            {activityOptions.map((option) => (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.activityOption,
+                  activityLevel === option.key && styles.activityOptionActive,
+                ]}
+                onPress={() => setActivityLevel(option.key as any)}
+              >
+                <View style={styles.activityContent}>
+                  <Text
+                    style={[
+                      styles.activityLabel,
+                      activityLevel === option.key &&
+                        styles.activityLabelActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.activityDescription,
+                      activityLevel === option.key &&
+                        styles.activityDescriptionActive,
+                    ]}
+                  >
+                    {option.description}
+                  </Text>
+                </View>
+                {activityLevel === option.key && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={24}
+                    color={colors.tertiary}
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+
+            {/* Password Change Section */}
             <Text style={styles.sectionTitle}>Change Password</Text>
+
+            {/* Current Password */}
+            <View style={styles.passwordInputWrapper}>
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                placeholder="Current Password"
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                secureTextEntry={!showCurrentPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowCurrentPassword((prev) => !prev)}
+              >
+                <Ionicons
+                  name={showCurrentPassword ? 'eye-off' : 'eye'}
+                  size={24}
+                  color="#888"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* New Password */}
             <View style={styles.passwordInputWrapper}>
               <TextInput
                 style={[styles.input, styles.passwordInput]}
@@ -200,6 +477,7 @@ const EditProfile = () => {
                 />
               </TouchableOpacity>
             </View>
+
             <TouchableOpacity
               style={styles.button}
               onPress={handleChangePassword}
@@ -216,8 +494,32 @@ const EditProfile = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.tertiary,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  mainScrollContainer: {
+    flex: 1,
+  },
+  mainScrollContent: {
+    flexGrow: 1,
+  },
+  headerSection: {
+    backgroundColor: colors.tertiary,
+    paddingBottom: 30,
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+    paddingBottom: 20,
+  },
+  contentArea: {
+    backgroundColor: '#fff',
+    flex: 1,
+    marginTop: -20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 50,
   },
   container: {
     flex: 1,
@@ -233,8 +535,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.tertiary,
-    marginTop: 32,
-    marginBottom: 8,
+    marginTop: 25,
+    marginBottom: 15,
     textAlign: 'center',
   },
   input: {
@@ -259,23 +561,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   imagePicker: {
-    alignSelf: 'center',
-    marginBottom: 24,
-    position: 'relative',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: colors.tertiary,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   profileImage: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
   },
   editIcon: {
     position: 'absolute',
@@ -301,27 +608,91 @@ const styles = StyleSheet.create({
     top: 12,
     zIndex: 1,
   },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.tertiary,
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  genderButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.tertiary,
+    backgroundColor: '#fff',
+    gap: 8,
+  },
+  genderButtonActive: {
+    backgroundColor: colors.tertiary,
+    borderColor: colors.tertiary,
+  },
+  genderButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.tertiary,
+  },
+  genderButtonTextActive: {
+    color: '#fff',
+  },
+  activityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  activityOptionActive: {
+    borderColor: colors.tertiary,
+    backgroundColor: colors.tertiary,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.tertiary,
+    marginBottom: 4,
+  },
+  activityLabelActive: {
+    color: '#fff',
+  },
+  activityDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  activityDescriptionActive: {
+    color: '#fff',
+    opacity: 0.9,
+  },
   headerTab: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
     position: 'relative',
-    paddingVertical: 10,
-    marginBottom: 30,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
   },
   backbutton: {
     position: 'absolute',
-    left: -10,
-  },
-  headerbg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 170,
-    backgroundColor: colors.tertiary,
-    zIndex: 0,
+    left: 20,
   },
 });
 

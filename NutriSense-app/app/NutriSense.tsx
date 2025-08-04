@@ -8,6 +8,7 @@ import UserProfile from './homePage/userProfile';
 import FoodInsightsScreen from './insightsPage/FoodInsightsScreen';
 import EditProfile from './homePage/EditProfile';
 import FoodDetailsScreen from './insightsPage/FoodDetailsScreen';
+import DashboardScreen from './Dashboard/dashboard';
 
 // Define the stack param list
 export type RootStackParamList = {
@@ -21,6 +22,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   FoodDetailsScreen: undefined;
   HistoryDetailsScreen: undefined;
+  Dashboard: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -28,9 +30,10 @@ const Stack = createStackNavigator<RootStackParamList>();
 const NutriSense = () => {
   return (
     <Stack.Navigator
-      initialRouteName="HomeScreen"
+      initialRouteName="Dashboard"
       screenOptions={{ headerShown: false }}
     >
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="SignLog" component={SignLog} />
       <Stack.Screen name="Signup" component={Signup} />
       <Stack.Screen name="Login" component={Login} />

@@ -6,9 +6,13 @@ import {
   Text,
   TouchableOpacity,
   ImageBackground,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import InsightsPageStyle from '../styles/InsightPageStyles';
+import colors from '../config/colors';
 import axios from 'axios';
 import { BackendLink } from '@/components/Default';
 import { useRouter } from 'expo-router';
@@ -17,17 +21,16 @@ import foodImages from '../../assets/foodImages/foodImages';
 
 type TabName = 'Digestive' | 'Health' | 'Nutrients';
 
-// type NutrientItem = {
-//   label: string;
-//   value: string;
-//   width: string;
-//   color: string;
-// };
+interface Food {
+  _id: string;
+  name: string;
+  numCalories: number;
+}
 
 const FoodInsightsScreen: React.FC = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabName>('Digestive');
-  const [foods, setFoods] = useState([]);
+  const [foods, setFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(true);
 
   // const handleTabPress = (tabName: TabName) => {
@@ -64,60 +67,87 @@ const FoodInsightsScreen: React.FC = () => {
   // }
 
   return (
-    <SafeAreaView style={InsightsPageStyle.safeContainer}>
-      <View style={InsightsPageStyle.contain}>
-        <Text style={InsightsPageStyle.pageTitle}>Food Insights</Text>
-        <Text style={InsightsPageStyle.pageSubtitle}>
-          Learn about digestive properties and health benefits{' '}
-        </Text>
+    <SafeAreaView style={InsightsPageStyle.modernSafeContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.tertiary} />
+      {/* Modern Header Section */}
+      <View style={InsightsPageStyle.modernHeaderSection}>
+        <View style={InsightsPageStyle.headerContent}>
+          <View style={InsightsPageStyle.titleContainer}>
+            <Text style={InsightsPageStyle.modernPageTitle}>Food Insights</Text>
+            <Text style={InsightsPageStyle.modernPageSubtitle}>
+              Discover nutritional benefits and digestive properties
+            </Text>
+          </View>
+          <View style={InsightsPageStyle.headerIconContainer}>
+            <Feather name="info" size={24} color={colors.tertiary} />
+          </View>
+        </View>
       </View>
+
       {loading ? (
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={{ marginTop: 10, color: '#555' }}>Loading...</Text>
+        <View style={InsightsPageStyle.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.tertiary} />
+          <Text style={InsightsPageStyle.loadingText}>
+            Loading food insights...
+          </Text>
         </View>
       ) : (
-        <ScrollView>
-          <View style={InsightsPageStyle.container}>
-            {foods.map((food) => {
+        <ScrollView
+          style={InsightsPageStyle.modernScrollView}
+          contentContainerStyle={InsightsPageStyle.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={InsightsPageStyle.modernContainer}>
+            {foods.map((food, index) => {
               const imageSource = getFoodImage(food.name);
 
               return (
-                <View key={food._id}>
-                  <View style={InsightsPageStyle.headerContainer}>
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/insightsPage/FoodDetailsScreen',
-                          params: { foodId: food._id },
-                        })
-                      }
+                <TouchableOpacity
+                  key={food._id}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/insightsPage/FoodDetailsScreen',
+                      params: { foodId: food._id },
+                    })
+                  }
+                  style={[
+                    InsightsPageStyle.modernFoodCard,
+                    { marginTop: index === 0 ? 0 : 20 },
+                  ]}
+                >
+                  <ImageBackground
+                    source={imageSource}
+                    style={InsightsPageStyle.modernHeaderImage}
+                    imageStyle={InsightsPageStyle.foodImageStyle}
+                  >
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.7)']}
+                      style={InsightsPageStyle.modernGradientOverlay}
                     >
-                      <ImageBackground
-                        source={imageSource}
-                        style={InsightsPageStyle.headerImage}
-                        imageStyle={{
-                          borderRadius: 10,
-                        }}
-                      >
-                        <LinearGradient
-                          colors={['transparent', 'rgba(0,0,0,0.6)']}
-                          style={InsightsPageStyle.gradientOverlay}
-                        >
-                          <Text style={InsightsPageStyle.foodName}>
-                            {food.name}
-                          </Text>
-                          <Text style={InsightsPageStyle.foodCalories}>
-                            {food.numCalories} kcal per serving
-                          </Text>
-                        </LinearGradient>
-                      </ImageBackground>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                      <View style={InsightsPageStyle.foodContentContainer}>
+                        <Text style={InsightsPageStyle.modernFoodName}>
+                          {food.name}
+                        </Text>
+                        <View style={InsightsPageStyle.bottomRow}>
+                          <View style={InsightsPageStyle.caloriesBadge}>
+                            <Feather name="zap" size={14} color="#fff" />
+                            <Text style={InsightsPageStyle.modernFoodCalories}>
+                              {food.numCalories} kcal
+                            </Text>
+                          </View>
+                          <View style={InsightsPageStyle.tapIndicator}>
+                            <Feather
+                              name="arrow-right"
+                              size={20}
+                              color="#fff"
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </ImageBackground>
+                </TouchableOpacity>
               );
             })}
           </View>

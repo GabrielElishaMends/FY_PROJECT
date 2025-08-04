@@ -355,7 +355,7 @@ const DashboardScreen: React.FC = () => {
         </View>
 
         {/* Additional spacing at bottom */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>
   );
