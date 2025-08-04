@@ -3,12 +3,13 @@ import {
   View,
   Text,
   SafeAreaView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   Image,
   Platform,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../config/colors';
@@ -19,7 +20,7 @@ const SignLog = () => {
   return (
     <LinearGradient colors={['#61c765', '#128a17']} style={styles.gradient}>
       <SafeAreaView style={styles.safeContainer}>
-        <StatusBar barStyle="default" />
+        <StatusBar style="light" backgroundColor="#61c765" />
         <View style={styles.container}>
           <View style={styles.header}>
             <Image
@@ -61,7 +62,7 @@ const styles = StyleSheet.create({
   },
   safeContainer: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,

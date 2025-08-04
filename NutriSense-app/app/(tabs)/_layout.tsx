@@ -53,7 +53,7 @@ export default function TabLayout() {
       />
       {/* Food Scanner Tab */}
       <Tabs.Screen
-        name="index"
+        name="scan"
         options={{
           title: 'Scan Food',
           tabBarIcon: ({ color }) => (

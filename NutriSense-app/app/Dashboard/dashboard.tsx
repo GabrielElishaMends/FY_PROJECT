@@ -7,9 +7,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
-  StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { auth } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -43,6 +45,7 @@ interface CircularProgressProps {
   unit: string;
   size?: number;
   color?: string;
+  isLoading?: boolean;
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -52,6 +55,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   unit,
   size = 80, // Reduced default size
   color = colors.tertiary,
+  isLoading = false,
 }) => {
   const percentage = Math.min((value / max) * 100, 100);
   const radius = 35;
@@ -74,17 +78,23 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
             {
               width: size,
               height: size,
-              borderColor: color, // Always use the provided color
-              borderWidth: percentage > 0 ? 5 : 2, // Thinner border for 0 values
-              opacity: percentage > 0 ? 1 : 0.3, // Semi-transparent for 0 values
+              borderColor: isLoading ? '#f0f0f0' : color, // Gray when loading
+              borderWidth: percentage > 0 && !isLoading ? 5 : 2,
+              opacity: isLoading ? 0.3 : percentage > 0 ? 1 : 0.3,
             },
           ]}
         />
 
         {/* Values centered in the circle */}
         <View style={[styles.progressContent, { width: size, height: size }]}>
-          <Text style={styles.progressValue}>{Math.round(value)}</Text>
-          <Text style={styles.progressMax}>/ {max}</Text>
+          {isLoading ? (
+            <ActivityIndicator size="small" color={color} />
+          ) : (
+            <>
+              <Text style={styles.progressValue}>{Math.round(value)}</Text>
+              <Text style={styles.progressMax}>/ {max}</Text>
+            </>
+          )}
         </View>
       </View>
 
@@ -101,7 +111,7 @@ const DashboardScreen: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [foodHistory, setFoodHistory] = useState<FoodHistoryEntry[]>([]);
   const [viewType, setViewType] = useState<'daily' | 'weekly'>('daily');
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true); // Renamed for clarity
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -122,10 +132,10 @@ const DashboardScreen: React.FC = () => {
         } catch (error) {
           console.error('Error fetching user data:', error);
         } finally {
-          setLoading(false);
+          setDataLoading(false);
         }
       } else {
-        setLoading(false);
+        setDataLoading(false);
       }
     });
 
@@ -187,18 +197,9 @@ const DashboardScreen: React.FC = () => {
     }
   }, [userProfile, viewType]);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeContainer}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading your nutrition data...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <StatusBar style="dark" backgroundColor={colors.secondary} />
       <NutriHeader profileImage={profileImage} />
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -270,6 +271,7 @@ const DashboardScreen: React.FC = () => {
               label="Calories"
               unit="kcal"
               color="#e91e63"
+              isLoading={dataLoading}
             />
           </View>
 
@@ -280,6 +282,7 @@ const DashboardScreen: React.FC = () => {
               label="Carbs"
               unit="g"
               color="#ff9800"
+              isLoading={dataLoading}
             />
           </View>
 
@@ -290,6 +293,7 @@ const DashboardScreen: React.FC = () => {
               label="Protein"
               unit="g"
               color="#4caf50"
+              isLoading={dataLoading}
             />
           </View>
 
@@ -300,6 +304,7 @@ const DashboardScreen: React.FC = () => {
               label="Fat"
               unit="g"
               color="#2196f3"
+              isLoading={dataLoading}
             />
           </View>
         </View>
@@ -315,42 +320,67 @@ const DashboardScreen: React.FC = () => {
 
           <View style={styles.summaryGrid}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {Math.round(nutritionData.calories)}
-              </Text>
+              {dataLoading ? (
+                <ActivityIndicator size="small" color={colors.tertiary} />
+              ) : (
+                <Text style={styles.summaryValue}>
+                  {Math.round(nutritionData.calories)}
+                </Text>
+              )}
               <Text style={styles.summaryLabel}>Calories consumed</Text>
             </View>
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {Math.round(nutritionData.carbs)}g
-              </Text>
+              {dataLoading ? (
+                <ActivityIndicator size="small" color={colors.tertiary} />
+              ) : (
+                <Text style={styles.summaryValue}>
+                  {Math.round(nutritionData.carbs)}g
+                </Text>
+              )}
               <Text style={styles.summaryLabel}>Carbohydrates</Text>
             </View>
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {Math.round(nutritionData.protein)}g
-              </Text>
+              {dataLoading ? (
+                <ActivityIndicator size="small" color={colors.tertiary} />
+              ) : (
+                <Text style={styles.summaryValue}>
+                  {Math.round(nutritionData.protein)}g
+                </Text>
+              )}
               <Text style={styles.summaryLabel}>Protein</Text>
             </View>
 
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {Math.round(nutritionData.fat)}g
-              </Text>
+              {dataLoading ? (
+                <ActivityIndicator size="small" color={colors.tertiary} />
+              ) : (
+                <Text style={styles.summaryValue}>
+                  {Math.round(nutritionData.fat)}g
+                </Text>
+              )}
               <Text style={styles.summaryLabel}>Fat</Text>
             </View>
           </View>
 
           <View style={styles.summaryFooter}>
-            <Text style={styles.summaryFooterText}>
-              {foodHistory.length === 0
-                ? 'Start tracking your food to see your nutrition progress!'
-                : `Based on ${foodHistory.length} tracked food${
-                    foodHistory.length === 1 ? '' : 's'
-                  }`}
-            </Text>
+            {dataLoading ? (
+              <View style={styles.loadingFooter}>
+                <ActivityIndicator size="small" color={colors.tertiary} />
+                <Text style={styles.summaryFooterText}>
+                  Loading your nutrition data...
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.summaryFooterText}>
+                {foodHistory.length === 0
+                  ? 'Start tracking your food to see your nutrition progress!'
+                  : `Based on ${foodHistory.length} tracked food${
+                      foodHistory.length === 1 ? '' : 's'
+                    }`}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -365,7 +395,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.secondary,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
@@ -404,23 +434,40 @@ const styles = StyleSheet.create({
   toggleWrapper: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    // backgroundColor: '#f0f0f0',
     borderRadius: 15,
-    padding: 4,
+    padding: 6,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 1.5,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 15,
+    paddingVertical: 12,
+    borderRadius: 12,
     gap: 8,
   },
   toggleButtonActive: {
     backgroundColor: colors.tertiary,
+    elevation: 1,
+    shadowColor: colors.tertiary,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
   },
   toggleText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.tertiary,
   },
@@ -563,6 +610,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 16,
+  },
+  loadingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
   },
   summaryFooterText: {
     fontSize: 14,

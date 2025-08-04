@@ -8,10 +8,12 @@ import {
   SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import HomePageStyles from '../styles/HomePageStyles';
+import colors from '../config/colors';
 import { auth, db } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -234,6 +236,7 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={HomePageStyles.safeContainer}>
+      <StatusBar style="dark" backgroundColor={colors.secondary} />
       <NutriHeader profileImage={profileImage} />
       <ScrollView
         contentContainerStyle={HomePageStyles.scrollContainer}
@@ -301,39 +304,65 @@ const HomeScreen = () => {
                 {active === 'camera' && (
                   <>
                     {!image ? (
-                      <View style={HomePageStyles.outerContainer}>
-                        <View style={HomePageStyles.innerContainer}>
+                      <View style={HomePageStyles.cameraContainer}>
+                        <View style={HomePageStyles.cameraSection}>
                           <Feather
-                            name="image"
+                            name="camera"
                             size={40}
                             color="#4CAF50"
                             style={HomePageStyles.topIcon}
                           />
                           <Text style={HomePageStyles.descriptionText}>
-                            Take a photo of your food to analyze its nutritional
-                            content
+                            Capture your food to analyze its nutritional content
+                            with AI
                           </Text>
+                        </View>
 
+                        <View style={HomePageStyles.cameraActionContainer}>
                           <TouchableOpacity
-                            style={HomePageStyles.cameraButton}
+                            style={HomePageStyles.primaryCameraButton}
                             onPress={handleTakePicture}
                             activeOpacity={0.8}
                           >
                             <Feather name="camera" size={24} color="#fff" />
-                            <Text style={HomePageStyles.buttonText}>
+                            <Text style={HomePageStyles.primaryButtonText}>
                               Take Photo
                             </Text>
                           </TouchableOpacity>
 
+                          <View style={HomePageStyles.dividerContainer}>
+                            <View style={HomePageStyles.dividerLine} />
+                            <Text style={HomePageStyles.dividerText}>or</Text>
+                            <View style={HomePageStyles.dividerLine} />
+                          </View>
+
                           <TouchableOpacity
-                            style={HomePageStyles.uploadButton}
+                            style={HomePageStyles.secondaryCameraButton}
                             onPress={handlePickImage}
                             activeOpacity={0.8}
                           >
-                            <Text style={HomePageStyles.uploadButtonText}>
-                              Upload from Gallery
+                            <Feather name="image" size={20} color="#4CAF50" />
+                            <Text style={HomePageStyles.secondaryButtonText}>
+                              Choose from Gallery
                             </Text>
                           </TouchableOpacity>
+                        </View>
+
+                        <View style={HomePageStyles.cameraHintContainer}>
+                          <Text style={HomePageStyles.cameraHintTitle}>
+                            Tips for best results:
+                          </Text>
+                          <View style={HomePageStyles.cameraHints}>
+                            <Text style={HomePageStyles.cameraHintText}>
+                              • Good lighting
+                            </Text>
+                            <Text style={HomePageStyles.cameraHintText}>
+                              • Clear view of food
+                            </Text>
+                            <Text style={HomePageStyles.cameraHintText}>
+                              • Close-up shots work best
+                            </Text>
+                          </View>
                         </View>
                       </View>
                     ) : (
@@ -390,30 +419,87 @@ const HomeScreen = () => {
                 {/* Search UI */}
                 {active === 'search' && (
                   <View style={HomePageStyles.searchContainer}>
+                    <View style={HomePageStyles.searchSection}>
+                      <Feather
+                        name="search"
+                        size={40}
+                        color="#4CAF50"
+                        style={HomePageStyles.topIcon}
+                      />
+                      <Text style={HomePageStyles.descriptionText}>
+                        Search for your food by name to get detailed nutritional
+                        information
+                      </Text>
+                    </View>
+
                     <View style={HomePageStyles.inputWrapper}>
+                      <Feather
+                        name="search"
+                        size={20}
+                        color="#999"
+                        style={HomePageStyles.searchIcon}
+                      />
                       <TextInput
                         style={HomePageStyles.input}
-                        placeholder="Search for food"
+                        placeholder="Type food name..."
                         value={food}
                         onChangeText={setFood}
                         placeholderTextColor="#999"
+                        returnKeyType="search"
+                        onSubmitEditing={handleSearch}
                       />
-                      <TouchableOpacity
-                        onPress={handleSearch}
-                        style={[
-                          HomePageStyles.searchIconButton,
-                          food.trim() === '' &&
-                            HomePageStyles.disabledSearchButton,
-                        ]}
-                        activeOpacity={0.8}
-                        disabled={food.trim() === ''}
-                      >
-                        <Feather name="search" size={18} color="#fff" />
-                      </TouchableOpacity>
+                      {food.trim() !== '' && (
+                        <TouchableOpacity
+                          onPress={() => setFood('')}
+                          style={HomePageStyles.clearButton}
+                          activeOpacity={0.7}
+                        >
+                          <Feather name="x" size={18} color="#999" />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <Text style={HomePageStyles.suggestionText}>
-                      Try searching for: waakye, fufu, banku...
-                    </Text>
+
+                    <TouchableOpacity
+                      onPress={handleSearch}
+                      style={[
+                        HomePageStyles.searchButton,
+                        food.trim() === '' &&
+                          HomePageStyles.disabledSearchButton,
+                      ]}
+                      activeOpacity={0.8}
+                      disabled={food.trim() === ''}
+                    >
+                      <Feather name="search" size={20} color="#fff" />
+                      <Text style={HomePageStyles.searchButtonText}>
+                        Search Food
+                      </Text>
+                    </TouchableOpacity>
+
+                    <View style={HomePageStyles.suggestionContainer}>
+                      <Text style={HomePageStyles.suggestionTitle}>
+                        Popular searches:
+                      </Text>
+                      <View style={HomePageStyles.suggestionTags}>
+                        {[
+                          'waakye',
+                          'fufu',
+                          'banku',
+                          'jollof rice',
+                          'kelewele',
+                        ].map((suggestion) => (
+                          <TouchableOpacity
+                            key={suggestion}
+                            style={HomePageStyles.suggestionTag}
+                            onPress={() => setFood(suggestion)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={HomePageStyles.suggestionTagText}>
+                              {suggestion}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
                   </View>
                 )}
               </>

@@ -6,10 +6,12 @@ import {
   Platform,
   StyleSheet,
   SafeAreaView,
-  StatusBar,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -33,28 +35,43 @@ const UserProfile = () => {
   const [userEmail, setUserEmail] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(false);
   const [userHealthInfo, setUserHealthInfo] = useState<any>(null);
+  const [healthInfoLoading, setHealthInfoLoading] = useState(true);
+  const [userDataLoading, setUserDataLoading] = useState(true);
   const authContext = useAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserEmail(user.email ?? '');
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUserName(`${data.firstName ?? ''} ${data.lastName ?? ''}`);
-          setProfileImage(data.profileImage ?? null);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserName(`${data.firstName ?? ''} ${data.lastName ?? ''}`);
+            setProfileImage(data.profileImage ?? null);
 
-          // Set health information
-          setUserHealthInfo({
-            age: data.age,
-            gender: data.gender,
-            height: data.height,
-            weight: data.weight,
-            activityLevel: data.activityLevel,
-            dailyCalories: data.dailyCalories,
-          });
+            // Set health information
+            setUserHealthInfo({
+              age: data.age,
+              gender: data.gender,
+              height: data.height,
+              weight: data.weight,
+              activityLevel: data.activityLevel,
+              dailyCalories: data.dailyCalories,
+            });
+            setHealthInfoLoading(false);
+          } else {
+            setHealthInfoLoading(false);
+          }
+          setUserDataLoading(false);
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          setUserDataLoading(false);
+          setHealthInfoLoading(false);
         }
+      } else {
+        setUserDataLoading(false);
+        setHealthInfoLoading(false);
       }
     });
     return unsubscribe;
@@ -87,7 +104,7 @@ const UserProfile = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" backgroundColor={colors.tertiary} />
 
       {/* Single ScrollView containing everything */}
       <ScrollView
@@ -113,7 +130,14 @@ const UserProfile = () => {
                 <Feather name="user" size={80} color="#ccc" />
               </View>
             )}
-            <Text style={styles.userName}>{userName || 'User'}</Text>
+            {userDataLoading ? (
+              <View style={styles.userNameLoading}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={styles.userNameLoadingText}>Loading...</Text>
+              </View>
+            ) : (
+              <Text style={styles.userName}>{userName}</Text>
+            )}
             <Text style={styles.userEmail}>
               {userEmail || 'User not logged in'}
             </Text>
@@ -122,82 +146,123 @@ const UserProfile = () => {
 
         {/* White Content Area */}
         <View style={styles.contentArea}>
-          {/* Health Information Cards */}
-          {userHealthInfo && (
-            <View style={styles.healthInfoContainer}>
-              <Text style={styles.healthInfoTitle}>Health Information</Text>
-              <View style={styles.healthCards}>
-                <View style={styles.healthCard}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={20}
-                    color={colors.tertiary}
-                  />
-                  <Text style={styles.healthLabel}>Age</Text>
+          {/* Health Information Cards - Always Show */}
+          <View style={styles.healthInfoContainer}>
+            <Text style={styles.healthInfoTitle}>Health Information</Text>
+            <View style={styles.healthCards}>
+              <View style={styles.healthCard}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.tertiary}
+                />
+                <Text style={styles.healthLabel}>Age</Text>
+                {healthInfoLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
                   <Text style={styles.healthValue}>
-                    {userHealthInfo.age} years
+                    {userHealthInfo?.age
+                      ? `${userHealthInfo.age} years`
+                      : 'Not set'}
                   </Text>
-                </View>
-                <View style={styles.healthCard}>
-                  <Ionicons
-                    name="person-outline"
-                    size={20}
-                    color={colors.tertiary}
-                  />
-                  <Text style={styles.healthLabel}>Gender</Text>
+                )}
+              </View>
+
+              <View style={styles.healthCard}>
+                <Ionicons
+                  name="person-outline"
+                  size={20}
+                  color={colors.tertiary}
+                />
+                <Text style={styles.healthLabel}>Gender</Text>
+                {healthInfoLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
                   <Text style={styles.healthValue}>
-                    {userHealthInfo.gender === 'male' ? 'Male' : 'Female'}
+                    {userHealthInfo?.gender
+                      ? userHealthInfo.gender === 'male'
+                        ? 'Male'
+                        : 'Female'
+                      : 'Not set'}
                   </Text>
-                </View>
-                <View style={styles.healthCard}>
-                  <Ionicons
-                    name="resize-outline"
-                    size={20}
-                    color={colors.tertiary}
-                  />
-                  <Text style={styles.healthLabel}>Height</Text>
+                )}
+              </View>
+
+              <View style={styles.healthCard}>
+                <Ionicons
+                  name="resize-outline"
+                  size={20}
+                  color={colors.tertiary}
+                />
+                <Text style={styles.healthLabel}>Height</Text>
+                {healthInfoLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
                   <Text style={styles.healthValue}>
-                    {userHealthInfo.height} cm
+                    {userHealthInfo?.height
+                      ? `${userHealthInfo.height} cm`
+                      : 'Not set'}
                   </Text>
-                </View>
-                <View style={styles.healthCard}>
-                  <Ionicons
-                    name="fitness-outline"
-                    size={20}
-                    color={colors.tertiary}
-                  />
-                  <Text style={styles.healthLabel}>Weight</Text>
+                )}
+              </View>
+
+              <View style={styles.healthCard}>
+                <Ionicons
+                  name="fitness-outline"
+                  size={20}
+                  color={colors.tertiary}
+                />
+                <Text style={styles.healthLabel}>Weight</Text>
+                {healthInfoLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
                   <Text style={styles.healthValue}>
-                    {userHealthInfo.weight} kg
+                    {userHealthInfo?.weight
+                      ? `${userHealthInfo.weight} kg`
+                      : 'Not set'}
                   </Text>
-                </View>
-                <View style={styles.healthCard}>
-                  <Ionicons
-                    name="flash-outline"
-                    size={20}
-                    color={colors.tertiary}
-                  />
-                  <Text style={styles.healthLabel}>Activity</Text>
+                )}
+              </View>
+
+              <View style={styles.healthCard}>
+                <Ionicons
+                  name="flash-outline"
+                  size={20}
+                  color={colors.tertiary}
+                />
+                <Text style={styles.healthLabel}>Activity</Text>
+                {healthInfoLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
                   <Text style={styles.healthValue}>
-                    {userHealthInfo.activityLevel
-                      ?.replace('_', ' ')
-                      .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                    {userHealthInfo?.activityLevel
+                      ? userHealthInfo.activityLevel
+                          .replace('_', ' ')
+                          .replace(/\b\w/g, (l: string) => l.toUpperCase())
+                      : 'Not set'}
                   </Text>
-                </View>
-                <View style={styles.healthCard}>
-                  <Ionicons
-                    name="flame-outline"
-                    size={20}
-                    color={colors.tertiary}
-                  />
-                  <Text style={styles.healthLabel}>Daily Calories</Text>
+                )}
+              </View>
+
+              <View style={styles.healthCard}>
+                <Ionicons
+                  name="flame-outline"
+                  size={20}
+                  color={colors.tertiary}
+                />
+                <Text style={styles.healthLabel}>Daily Calories</Text>
+                {healthInfoLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
                   <Text style={styles.healthValue}>
-                    {userHealthInfo.dailyCalories} kcal
+                    {userHealthInfo?.dailyCalories
+                      ? `${userHealthInfo.dailyCalories} kcal`
+                      : 'Not set'}
                   </Text>
-                </View>
+                )}
               </View>
             </View>
-          )}
+          </View>
 
           {/* Action Cards */}
           <View style={styles.cardContainer}>
@@ -249,7 +314,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.tertiary,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   mainScrollContainer: {
     flex: 1,
@@ -279,7 +344,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 50,
+    paddingBottom: 20,
   },
   container: {
     flex: 1,
@@ -314,7 +379,7 @@ const styles = StyleSheet.create({
   userPic: {
     width: 100,
     height: 100,
-    marginTop: 25,
+    marginTop: 5,
     borderRadius: 50,
     borderWidth: 3,
     borderColor: '#fff',
@@ -328,6 +393,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 8,
     letterSpacing: 1,
+  },
+  userNameLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  userNameLoadingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   userEmail: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',

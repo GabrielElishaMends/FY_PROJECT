@@ -8,12 +8,13 @@ import {
   Alert,
   SafeAreaView,
   Platform,
-  StatusBar,
   Image,
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { auth, db } from '../../firebaseConfig';
 import { updateProfile, updatePassword } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -227,6 +228,7 @@ const EditProfile = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <StatusBar style="light" backgroundColor={colors.tertiary} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -302,16 +304,6 @@ const EditProfile = () => {
               value={lastName}
               onChangeText={setLastName}
             />
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSave}
-              disabled={uploading}
-            >
-              <Text style={styles.buttonText}>
-                {uploading ? 'Saving...' : 'Save Changes'}
-              </Text>
-            </TouchableOpacity>
 
             {/* Health Information Section */}
             <Text style={styles.sectionTitle}>Health Information</Text>
@@ -484,6 +476,17 @@ const EditProfile = () => {
             >
               <Text style={styles.buttonText}>Update Password</Text>
             </TouchableOpacity>
+
+            {/* Save All Changes Button */}
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSave}
+              disabled={uploading}
+            >
+              <Text style={styles.buttonText}>
+                {uploading ? 'Saving...' : 'Save All Changes'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -495,7 +498,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.tertiary,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   mainScrollContainer: {
     flex: 1,
@@ -519,7 +522,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 50,
+    paddingBottom: 20,
   },
   container: {
     flex: 1,
@@ -561,10 +564,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   imagePicker: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
     borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -580,9 +583,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   profileImage: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 94,
+    height: 94,
+    borderRadius: 47,
   },
   editIcon: {
     position: 'absolute',

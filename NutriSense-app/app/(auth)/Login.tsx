@@ -5,16 +5,20 @@ import {
   TextInput,
   Platform,
   SafeAreaView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   Image,
   ScrollView,
   Alert,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
 import GoogleIcon from '../../assets/images/googleIcon';
 import colors from '../config/colors';
@@ -46,8 +50,7 @@ const Login = () => {
       );
       const token = await userCredential.user.getIdToken();
       login(token); // Call the login function from AuthContext
-      router.replace('/(tabs)');
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/dash_board');
     } catch (error) {
       console.error(error);
       const err = error as { code?: string; message?: string };
@@ -66,7 +69,10 @@ const Login = () => {
   // Function to handle password reset
   const handleForgotPassword = async () => {
     if (!email) {
-      Alert.alert('Forgot Password', 'Please enter your email address above first.');
+      Alert.alert(
+        'Forgot Password',
+        'Please enter your email address above first.'
+      );
       return;
     }
     try {
@@ -86,7 +92,7 @@ const Login = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar style="dark" backgroundColor="#fff" />
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -318,7 +324,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   orContainer: {
     flexDirection: 'row',

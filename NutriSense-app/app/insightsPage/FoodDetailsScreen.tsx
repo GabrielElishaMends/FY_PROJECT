@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   ImageBackground,
   Platform,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import InsightsPageStyle from '../styles/InsightPageStyles';
@@ -69,10 +69,7 @@ const FoodDetailsScreen = () => {
     <View style={{ flex: 1 }}>
       {foodDetails ? (
         <SafeAreaView style={InsightsPageStyle.modernSafeContainer}>
-          <StatusBar
-            barStyle="light-content"
-            backgroundColor={colors.tertiary}
-          />
+          <StatusBar style="light" backgroundColor={colors.tertiary} />
           {/* Modern Header Section */}
           <View style={InsightsPageStyle.modernHeaderSection}>
             <View style={InsightsPageStyle.headerContent}>

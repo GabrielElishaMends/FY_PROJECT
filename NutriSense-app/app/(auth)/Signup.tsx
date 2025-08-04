@@ -5,13 +5,14 @@ import {
   TextInput,
   Platform,
   SafeAreaView,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   Image,
   ScrollView,
   Alert,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 // import { signInWithEmailAndPassword } from 'firebase/auth';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -104,7 +105,7 @@ const Signup = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar style="dark" backgroundColor="#fff" />
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   orContainer: {
     flexDirection: 'row',

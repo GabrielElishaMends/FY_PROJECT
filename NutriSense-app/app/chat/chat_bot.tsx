@@ -9,9 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  StatusBar,
   Image,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { StatusBar as RNStatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GoogleGenAI } from '@google/genai';
 import config from '../config/api';
@@ -344,6 +345,7 @@ Please respond appropriately:`;
 
   return (
     <SafeAreaView style={styles.safeContainer}>
+      <StatusBar style="dark" backgroundColor={colors.secondary} />
       <NutriHeader profileImage={profileImage} />{' '}
       {/* Now using the state variable */}
       <KeyboardAvoidingView
@@ -376,32 +378,44 @@ Please respond appropriately:`;
         )}
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                height: Math.min(100, Math.max(40, inputHeight)),
-                maxHeight: 100,
-              },
-            ]}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask about nutrition for waakye, banku, fufu, etc..."
-            placeholderTextColor="#aaa"
-            editable={!isLoading}
-            onSubmitEditing={sendMessage}
-            multiline={true}
-            onContentSizeChange={(e) =>
-              setInputHeight(e.nativeEvent.contentSize.height)
-            }
-          />
-          <TouchableOpacity
-            onPress={sendMessage}
-            style={[styles.sendButton, { opacity: isLoading ? 0.5 : 1 }]}
-            disabled={isLoading || !inputText.trim()}
-          >
-            <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  height: Math.min(100, Math.max(40, inputHeight)),
+                  maxHeight: 100,
+                },
+              ]}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Ask about nutrition..."
+              placeholderTextColor="#999"
+              editable={!isLoading}
+              onSubmitEditing={sendMessage}
+              multiline={true}
+              onContentSizeChange={(e) =>
+                setInputHeight(e.nativeEvent.contentSize.height)
+              }
+            />
+            <TouchableOpacity
+              onPress={sendMessage}
+              style={[
+                styles.sendButton,
+                {
+                  opacity: isLoading || !inputText.trim() ? 0.5 : 1,
+                  backgroundColor: inputText.trim() ? '#4CAF50' : '#ccc',
+                },
+              ]}
+              disabled={isLoading || !inputText.trim()}
+            >
+              <Ionicons
+                name="send"
+                size={20}
+                color={inputText.trim() ? '#fff' : '#666'}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -414,7 +428,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.secondary,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
@@ -425,94 +439,159 @@ const styles = StyleSheet.create({
   messageRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginVertical: 4,
+    marginVertical: 6,
     justifyContent: 'flex-start',
+    paddingHorizontal: 4,
   },
   userRow: {
     justifyContent: 'flex-end',
   },
   avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    marginRight: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
     backgroundColor: '#e0e0e0',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   userAvatarContainer: {
-    width: 30,
-    height: 30,
-    marginLeft: 6,
+    width: 32,
+    height: 32,
+    marginLeft: 8,
   },
   userAvatar: {
     width: '100%',
     height: '100%',
-    borderRadius: 15,
+    borderRadius: 16,
     backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#fff',
+    elevation: 1,
+    shadowColor: '#4CAF50',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
-    maxWidth: '76.1%',
+    padding: 14,
+    borderRadius: 18,
+    maxWidth: '75%',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
   userBubble: {
     backgroundColor: '#4CAF50',
     marginRight: 0,
+    borderBottomRightRadius: 4,
   },
   botBubble: {
-    // backgroundColor: '#f0f0f0',
     backgroundColor: '#fff',
     marginLeft: 8,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   messageText: {
-    fontSize: 15,
+    fontSize: 15.5,
+    lineHeight: 20,
     color: '#000',
   },
   inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    borderTopWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
+    padding: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
     backgroundColor: colors.secondary,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#fff',
+    borderRadius: 25,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E8F5E8',
+    elevation: 0.5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
   input: {
     flex: 1,
     minHeight: 40,
     maxHeight: 100,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     fontSize: 16,
+    color: '#333',
     textAlignVertical: 'center',
+    backgroundColor: 'transparent',
   },
   sendButton: {
-    backgroundColor: '#4CAF50',
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    padding: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginLeft: 8,
+    elevation: 1,
+    shadowColor: '#4CAF50',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   typingContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   typingAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     marginRight: 8,
     backgroundColor: '#e0e0e0',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   typingBubble: {
     backgroundColor: '#fff',
     marginLeft: 8,
-    padding: 8,
-    paddingHorizontal: 12,
+    padding: 12,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
 });
