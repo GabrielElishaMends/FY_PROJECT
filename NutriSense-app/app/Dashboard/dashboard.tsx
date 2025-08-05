@@ -13,6 +13,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 import { auth } from '../../firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
@@ -53,37 +54,51 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   max,
   label,
   unit,
-  size = 80, // Reduced default size
+  size = 80,
   color = colors.tertiary,
   isLoading = false,
 }) => {
-  const percentage = Math.min((value / max) * 100, 100);
-  const radius = 35;
-  const circumference = 2 * Math.PI * radius;
+  const percentage = Math.max(0, (value / max) * 100);
+  const strokeWidth = 5;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+
+  // Calculate stroke dash offset for the progress
   const strokeDasharray = circumference;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset =
+    circumference - (Math.min(percentage, 100) / 100) * circumference;
 
   return (
     <View style={styles.circularProgressContainer}>
       <View style={styles.svgContainer}>
-        {/* Background circle */}
-        <View
-          style={[styles.backgroundCircle, { width: size, height: size }]}
-        />
+        {/* SVG Progress Circle */}
+        <Svg width={size} height={size} style={styles.svgProgress}>
+          {/* Background Circle */}
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="#f0f0f0"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
 
-        {/* Progress overlay - always show color, even for 0 */}
-        <View
-          style={[
-            styles.progressCircle,
-            {
-              width: size,
-              height: size,
-              borderColor: isLoading ? '#f0f0f0' : color, // Gray when loading
-              borderWidth: percentage > 0 && !isLoading ? 5 : 2,
-              opacity: isLoading ? 0.3 : percentage > 0 ? 1 : 0.3,
-            },
-          ]}
-        />
+          {/* Progress Circle */}
+          {!isLoading && (
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={color}
+              strokeWidth={strokeWidth}
+              fill="transparent"
+              strokeDasharray={strokeDasharray}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`} // Start from top
+            />
+          )}
+        </Svg>
 
         {/* Values centered in the circle */}
         <View style={[styles.progressContent, { width: size, height: size }]}>
@@ -98,7 +113,16 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
         </View>
       </View>
 
-      {/* Labels below the circle */}
+      {/* Percentage below the circle, above the labels */}
+      {!isLoading && (
+        <View style={styles.progressPercentContainer}>
+          <Text style={[styles.progressPercent, { color }]}>
+            {Math.round(percentage)}%
+          </Text>
+        </View>
+      )}
+
+      {/* Labels below the percentage */}
       <View style={styles.progressLabel}>
         <Text style={styles.labelText}>{label}</Text>
         <Text style={styles.unitText}>{unit}</Text>
@@ -142,6 +166,20 @@ const DashboardScreen: React.FC = () => {
     return unsubscribe;
   }, []);
 
+  // Auto-refresh nutrition data when date changes (daily/weekly reset)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Force re-calculation at midnight for daily reset
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        // Trigger re-render by updating a timestamp
+        setDataLoading(false);
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
   const nutritionData = useMemo(() => {
     if (!foodHistory.length) {
       return { calories: 0, carbs: 0, protein: 0, fat: 0 };
@@ -150,11 +188,17 @@ const DashboardScreen: React.FC = () => {
     const now = new Date();
 
     if (viewType === 'daily') {
+      // Calculate daily totals for today - automatically resets at midnight
+      // Uses date filtering: startOfDay (00:00:00) to endOfDay (23:59:59)
       return calculateDailyTotals(foodHistory, now);
     } else {
-      // Calculate weekly summary
+      // Calculate weekly summary - automatically resets each Monday
       const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
+      // Set to Monday of current week (1 = Monday, 0 = Sunday)
+      const dayOfWeek = now.getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Handle Sunday as day 0
+      weekStart.setDate(now.getDate() + daysToMonday);
+
       const weeklySummary = calculateWeeklySummary(foodHistory, weekStart);
 
       return {
@@ -164,7 +208,7 @@ const DashboardScreen: React.FC = () => {
         fat: weeklySummary.totalFat,
       };
     }
-  }, [foodHistory, viewType]);
+  }, [foodHistory, viewType, dataLoading]); // Include dataLoading to trigger refresh
 
   const targets: NutritionTargets = useMemo(() => {
     if (!userProfile) {
@@ -484,7 +528,7 @@ const styles = StyleSheet.create({
     width: (screenWidth - 48) / 2,
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: 12, // Reduced padding for more internal space
     marginBottom: 20, // More space between rows
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -493,7 +537,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    height: 160, // Increased height to contain all content
+    height: 180, // Keep height but optimize internal spacing
   },
   circularProgressContainer: {
     alignItems: 'center',
@@ -501,25 +545,18 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: '100%',
     height: '100%',
-    paddingTop: 5, // Reduced padding to keep content in bounds
+    paddingTop: 0, // Remove top padding to move everything up
+    paddingBottom: 8, // Add bottom padding to ensure content doesn't get cut
   },
   svgContainer: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 80, // Slightly smaller circle
+    width: 80,
     height: 80,
+    marginBottom: 3, // Reduced margin below circle
   },
-  backgroundCircle: {
-    borderRadius: 40, // Adjusted for smaller circle
-    borderWidth: 5,
-    borderColor: '#f0f0f0',
-    position: 'absolute',
-  },
-  progressCircle: {
-    borderRadius: 40, // Adjusted for smaller circle
-    borderWidth: 5,
-    borderColor: colors.tertiary,
+  svgProgress: {
     position: 'absolute',
   },
   progressContent: {
@@ -530,38 +567,59 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    width: 80, // Match circle size
-    height: 80,
   },
   progressValue: {
-    fontSize: 14, // Slightly smaller text
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
+    lineHeight: 16,
   },
   progressMax: {
-    fontSize: 9, // Smaller text
+    fontSize: 10,
     color: '#666',
     textAlign: 'center',
+    lineHeight: 12,
+  },
+  progressPercentContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6, // Reduced space between circle and percentage
+    marginBottom: 4, // Reduced space before labels
+  },
+  progressPercent: {
+    fontSize: 11, // Slightly smaller to fit better
+    textAlign: 'center',
+    fontWeight: '700',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 6, // Reduced horizontal padding
+    paddingVertical: 2, // Reduced vertical padding
+    borderRadius: 8, // Smaller border radius
+    overflow: 'hidden',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   progressLabel: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12, // Reduced margin
     paddingHorizontal: 4,
-    flex: 1, // Take remaining space
+    paddingVertical: 2, // Added vertical padding for consistent spacing
+    minHeight: 35, // Reduced minimum height but ensures space
   },
   labelText: {
-    fontSize: 14,
+    fontSize: 13, // Slightly smaller for better fit
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
+    marginBottom: 1, // Small margin between label and unit
   },
   unitText: {
-    fontSize: 12,
+    fontSize: 11, // Slightly smaller unit text
     color: '#666',
     textAlign: 'center',
-    marginTop: 2,
   },
   summaryCard: {
     backgroundColor: '#fff',

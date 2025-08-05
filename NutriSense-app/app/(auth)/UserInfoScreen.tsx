@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -566,19 +567,28 @@ const UserInfoScreen = () => {
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitButton, { opacity: loading ? 0.7 : 1 }]}
+            style={[
+              styles.submitButton,
+              loading && styles.submitButtonDisabled,
+            ]}
             onPress={handleSubmit}
             disabled={loading}
+            activeOpacity={0.8}
           >
-            <Text style={styles.submitButtonText}>
-              {loading
-                ? isFromSignup
-                  ? 'Creating Account...'
-                  : 'Updating...'
-                : isFromSignup
-                ? 'Create Account & Calculate Nutrition'
-                : 'Calculate My Nutrition Needs'}
-            </Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={[styles.submitButtonText, { marginLeft: 8 }]}>
+                  {isFromSignup ? 'Creating Account...' : 'Updating...'}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {isFromSignup
+                  ? 'Create Account & Calculate Nutrition'
+                  : 'Calculate My Nutrition Needs'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -749,6 +759,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 20,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   submitButtonText: {
     color: '#fff',

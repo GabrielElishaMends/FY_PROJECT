@@ -71,14 +71,13 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Insights Tab */}
+      {/* Explore Tab */}
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'Insights',
+          title: 'Explore',
           tabBarIcon: ({ color }) => (
-            // <IconSymbol size={28} name="book.outline" color={color} />
-            <MaterialIcons name="food-bank" size={28} color={color} />
+            <MaterialIcons name="ramen-dining" size={28} color={color} />
           ),
         }}
       />

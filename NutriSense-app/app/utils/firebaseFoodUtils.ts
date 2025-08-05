@@ -354,19 +354,19 @@ export const getUserFoodHistory = async (
 ): Promise<FoodHistoryEntry[]> => {
   try {
     let q = query(
-      collection(db, 'foodHistory'),
+      collection(db, 'history'), // Changed from 'foodHistory' to 'history'
       where('userId', '==', userId),
-      orderBy('timestamp', 'desc'),
+      orderBy('createdAt', 'desc'), // Changed from 'timestamp' to 'createdAt'
       limit(limitCount)
     );
 
     if (startDate && endDate) {
       q = query(
-        collection(db, 'foodHistory'),
+        collection(db, 'history'), // Changed from 'foodHistory' to 'history'
         where('userId', '==', userId),
-        where('timestamp', '>=', startDate),
-        where('timestamp', '<=', endDate),
-        orderBy('timestamp', 'desc')
+        where('createdAt', '>=', startDate), // Changed from 'timestamp' to 'createdAt'
+        where('createdAt', '<=', endDate), // Changed from 'timestamp' to 'createdAt'
+        orderBy('createdAt', 'desc') // Changed from 'timestamp' to 'createdAt'
       );
     }
 
@@ -376,8 +376,19 @@ export const getUserFoodHistory = async (
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       foodHistory.push({
-        ...data,
-        timestamp: data.timestamp.toDate(),
+        id: doc.id,
+        userId: data.userId,
+        food: {
+          id: data.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown_food',
+          name: data.name,
+          calories: data.calories || 0,
+          carbs: data.carbs || 0,
+          protein: data.protein || 0,
+          fat: data.fat || 0,
+        },
+        portionMultiplier: data.portionMultiplier || 1,
+        timestamp: data.createdAt ? data.createdAt.toDate() : new Date(),
+        imageUri: data.imageUri,
       } as FoodHistoryEntry);
     });
 

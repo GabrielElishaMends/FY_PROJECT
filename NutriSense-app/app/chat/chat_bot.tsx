@@ -84,11 +84,7 @@ const ChatbotScreen: React.FC<ChatbotScreenProps> = ({
     // Update the welcome message to be more specific
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-      text: `Hello! I'm your Ghanaian food nutrition assistant. I can help you with nutrition information about these foods: ${GHANAIAN_FOODS.join(
-        ', '
-      )}. 
-
-What would you like to know about nutrition or these foods?`,
+      text: "Hello! I'm your Ghanaian food nutrition assistant. I can help you with nutrition information about Ghanaian foods.\n\nWhat would you like to know about nutrition or these foods?",
       sender: 'bot',
     };
     setMessages([welcomeMessage]);
@@ -96,6 +92,10 @@ What would you like to know about nutrition or these foods?`,
 
   // Update the formatText function to handle bold, italics, and bullet points
   const formatText = (text: string) => {
+    if (!text || typeof text !== 'string') {
+      return <Text style={styles.messageText}></Text>;
+    }
+
     // First, replace * bullet points with • dots (only at start of lines)
     let formattedText = text.replace(/^\* /gm, '• ');
     formattedText = formattedText.replace(/\n\* /g, '\n• ');
@@ -104,28 +104,41 @@ What would you like to know about nutrition or these foods?`,
     // Use a more complex regex to handle both patterns
     const parts = formattedText.split(/(\*\*.*?\*\*|\*.*?\*)/g);
 
-    return parts.map((part, index) => {
-      // Check if it's bold text (**text**)
-      if (part.startsWith('**') && part.endsWith('**')) {
-        const boldText = part.slice(2, -2); // Remove ** from both ends
-        return (
-          <Text key={index} style={{ fontWeight: 'bold' }}>
-            {boldText}
-          </Text>
-        );
-      }
-      // Check if it's italic text (*text*) but not bullet points
-      else if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-        const italicText = part.slice(1, -1); // Remove * from both ends
-        return (
-          <Text key={index} style={{ fontStyle: 'italic' }}>
-            {italicText}
-          </Text>
-        );
-      }
-      // Return regular text
-      return <Text key={index}>{part}</Text>;
-    });
+    return (
+      <Text style={styles.messageText}>
+        {parts.map((part, index) => {
+          // Skip empty parts
+          if (!part) {
+            return null;
+          }
+
+          // Check if it's bold text (**text**)
+          if (part.startsWith('**') && part.endsWith('**')) {
+            const boldText = part.slice(2, -2); // Remove ** from both ends
+            return (
+              <Text key={index} style={{ fontWeight: 'bold' }}>
+                {boldText}
+              </Text>
+            );
+          }
+          // Check if it's italic text (*text*) but not bullet points
+          else if (
+            part.startsWith('*') &&
+            part.endsWith('*') &&
+            part.length > 2
+          ) {
+            const italicText = part.slice(1, -1); // Remove * from both ends
+            return (
+              <Text key={index} style={{ fontStyle: 'italic' }}>
+                {italicText}
+              </Text>
+            );
+          }
+          // Return regular text wrapped in Text component
+          return <Text key={index}>{part}</Text>;
+        })}
+      </Text>
+    );
   };
 
   // Add this function right after the formatText function and before sendMessage
@@ -315,7 +328,7 @@ Please respond appropriately:`;
             resizeMode="cover"
           />
           <View style={[styles.messageBubble, styles.botBubble]}>
-            <Text style={styles.messageText}>{formatText(item.text)}</Text>
+            {formatText(item.text)}
           </View>
         </>
       ) : (
@@ -434,14 +447,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chatContainer: {
-    padding: 16,
+    padding: 8,
   },
   messageRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     marginVertical: 6,
     justifyContent: 'flex-start',
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   userRow: {
     justifyContent: 'flex-end',
@@ -450,15 +463,16 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    marginRight: 8,
+    marginRight: 2,
     backgroundColor: '#e0e0e0',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    padding: 4,
   },
   userAvatarContainer: {
     width: 32,
     height: 32,
-    marginLeft: 8,
+    marginLeft: 2,
   },
   userAvatar: {
     width: '100%',
@@ -482,7 +496,7 @@ const styles = StyleSheet.create({
   messageBubble: {
     padding: 14,
     borderRadius: 18,
-    maxWidth: '75%',
+    maxWidth: '80%',
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: {
@@ -499,7 +513,7 @@ const styles = StyleSheet.create({
   },
   botBubble: {
     backgroundColor: '#fff',
-    marginLeft: 8,
+    marginLeft: 2,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
@@ -517,7 +531,7 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 25,
     paddingHorizontal: 4,
@@ -551,6 +565,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
+    alignSelf: 'center',
     elevation: 1,
     shadowColor: '#4CAF50',
     shadowOffset: {
@@ -563,22 +578,23 @@ const styles = StyleSheet.create({
   typingContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginBottom: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   typingAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    marginRight: 8,
+    marginRight: 2,
     backgroundColor: '#e0e0e0',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+    padding: 4,
   },
   typingBubble: {
     backgroundColor: '#fff',
-    marginLeft: 8,
+    marginLeft: 2,
     padding: 12,
     paddingHorizontal: 16,
     borderRadius: 18,

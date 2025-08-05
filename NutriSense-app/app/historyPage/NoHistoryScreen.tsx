@@ -21,6 +21,7 @@ const NoHistoryScreen = () => {
       <TouchableOpacity
         style={styles.searchButton}
         onPress={handleGoBack}
+        activeOpacity={0.8}
       >
         <Feather
           name="search"

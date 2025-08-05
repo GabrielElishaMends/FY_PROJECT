@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import { BackendLink } from '@/components/Default';
+import NoHistoryScreen from './NoHistoryScreen';
 
 // Update the HistoryItemType to include all fields
 type HistoryItemType = {
@@ -134,6 +135,11 @@ const HistoryItem = ({ item }: { item: HistoryItemType }) => {
 
 // Add logging to the main component
 const HistoryList = ({ data }: Props) => {
+  // Show empty state when there's no data
+  if (!data || data.length === 0) {
+    return <NoHistoryScreen />;
+  }
+
   return (
     <FlatList
       data={data}

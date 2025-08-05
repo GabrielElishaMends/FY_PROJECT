@@ -10,6 +10,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar } from 'react-native';
@@ -245,7 +246,13 @@ const Signup = () => {
             {/* Button Section */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.button}
+                style={[
+                  styles.button,
+                  (loading ||
+                    !validatePassword(password) ||
+                    password !== confirmPassword) &&
+                    styles.buttonDisabled,
+                ]}
                 onPress={handleSignup}
                 activeOpacity={0.9}
                 disabled={
@@ -255,7 +262,12 @@ const Signup = () => {
                 }
               >
                 {loading ? (
-                  <Text style={styles.buttonText}>Please wait...</Text>
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#ffffff" />
+                    <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                      Please wait...
+                    </Text>
+                  </View>
                 ) : (
                   <Text style={styles.buttonText}>
                     Continue to Health Setup
@@ -414,6 +426,14 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });
 

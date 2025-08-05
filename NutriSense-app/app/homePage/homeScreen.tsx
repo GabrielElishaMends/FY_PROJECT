@@ -7,6 +7,7 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
@@ -39,6 +40,7 @@ const HomeScreen = () => {
   } | null>(null);
   const [searchedFood, setSearchedFood] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -202,6 +204,7 @@ const HomeScreen = () => {
     if (!searchedFood || !auth.currentUser) return;
 
     try {
+      setIsSaving(true);
       const imageToSave = searchedFood.imageUri || searchedFood.defaultImage;
 
       await saveFoodHistory({
@@ -223,6 +226,8 @@ const HomeScreen = () => {
     } catch (error) {
       console.error('Error saving food to history:', error);
       alert('Failed to save food to history. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -532,11 +537,23 @@ const HomeScreen = () => {
                       style={actionButtonStyles.saveButton}
                       onPress={handleSaveToHistory}
                       activeOpacity={0.8}
+                      disabled={isSaving}
                     >
-                      <Feather name="plus-circle" size={20} color="#fff" />
-                      <Text style={actionButtonStyles.saveButtonText}>
-                        Add to track my calories
-                      </Text>
+                      {isSaving ? (
+                        <>
+                          <ActivityIndicator size="small" color="#fff" />
+                          <Text style={actionButtonStyles.saveButtonText}>
+                            Adding calories...
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <Feather name="plus-circle" size={20} color="#fff" />
+                          <Text style={actionButtonStyles.saveButtonText}>
+                            Add to track my calories
+                          </Text>
+                        </>
+                      )}
                     </TouchableOpacity>
 
                     <TouchableOpacity

@@ -82,7 +82,7 @@ const FoodDetailsScreen = () => {
                 </Text>
               </View>
               <View style={InsightsPageStyle.headerIconContainer}>
-                <Feather name="pie-chart" size={24} color={colors.tertiary} />
+                <Feather name="pie-chart" size={24} color="#fff" />
               </View>
             </View>
           </View>

@@ -42,6 +42,8 @@ const EditProfile = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Health information states
   const [age, setAge] = useState('');
@@ -109,6 +111,7 @@ const EditProfile = () => {
   }, [user]);
 
   const handleSave = async () => {
+    setSaving(true);
     try {
       if (user) {
         // Recalculate nutrition needs if health info is provided
@@ -161,18 +164,23 @@ const EditProfile = () => {
     } catch (error) {
       Alert.alert('Error', 'Could not update profile.');
       console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleChangePassword = async () => {
+    setChangingPassword(true);
     try {
       if (!currentPassword) {
         Alert.alert('Error', 'Please enter your current password.');
+        setChangingPassword(false);
         return;
       }
 
       if (newPassword.length < 6) {
         Alert.alert('Error', 'New password must be at least 6 characters.');
+        setChangingPassword(false);
         return;
       }
 
@@ -202,6 +210,8 @@ const EditProfile = () => {
         Alert.alert('Error', 'Could not update password. Please try again.');
       }
       console.error(error);
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -258,6 +268,7 @@ const EditProfile = () => {
               <TouchableOpacity
                 style={styles.imagePicker}
                 onPress={handlePickImage}
+                activeOpacity={0.8}
               >
                 {profileImage ? (
                   <>
@@ -327,6 +338,7 @@ const EditProfile = () => {
                   gender === 'male' && styles.genderButtonActive,
                 ]}
                 onPress={() => setGender('male')}
+                activeOpacity={0.8}
               >
                 <Ionicons
                   name="person"
@@ -349,6 +361,7 @@ const EditProfile = () => {
                   gender === 'female' && styles.genderButtonActive,
                 ]}
                 onPress={() => setGender('female')}
+                activeOpacity={0.8}
               >
                 <Ionicons
                   name="person"
@@ -394,6 +407,7 @@ const EditProfile = () => {
                   activityLevel === option.key && styles.activityOptionActive,
                 ]}
                 onPress={() => setActivityLevel(option.key as any)}
+                activeOpacity={0.8}
               >
                 <View style={styles.activityContent}>
                   <Text
@@ -416,11 +430,7 @@ const EditProfile = () => {
                   </Text>
                 </View>
                 {activityLevel === option.key && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={24}
-                    color={colors.tertiary}
-                  />
+                  <Ionicons name="checkmark-circle" size={24} color="#fff" />
                 )}
               </TouchableOpacity>
             ))}
@@ -471,21 +481,45 @@ const EditProfile = () => {
             </View>
 
             <TouchableOpacity
-              style={styles.button}
+              style={[styles.button, changingPassword && styles.buttonDisabled]}
               onPress={handleChangePassword}
+              disabled={changingPassword}
+              activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>Update Password</Text>
+              {changingPassword ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                    Updating Password...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>Update Password</Text>
+              )}
             </TouchableOpacity>
 
             {/* Save All Changes Button */}
             <TouchableOpacity
-              style={styles.button}
+              style={[
+                styles.button,
+                (saving || uploading) && styles.buttonDisabled,
+              ]}
               onPress={handleSave}
-              disabled={uploading}
+              disabled={saving || uploading}
+              activeOpacity={0.8}
             >
-              <Text style={styles.buttonText}>
-                {uploading ? 'Saving...' : 'Save All Changes'}
-              </Text>
+              {saving ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                    Saving Changes...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.buttonText}>
+                  {uploading ? 'Uploading Image...' : 'Save All Changes'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -557,6 +591,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 12,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: '#fff',

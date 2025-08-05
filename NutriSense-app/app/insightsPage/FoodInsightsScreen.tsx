@@ -33,10 +33,6 @@ const FoodInsightsScreen: React.FC = () => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // const handleTabPress = (tabName: TabName) => {
-  //   setActiveTab(tabName);
-  // };
-
   useEffect(() => {
     const fetchFoods = async () => {
       try {
@@ -58,14 +54,6 @@ const FoodInsightsScreen: React.FC = () => {
     return foodImages[key] || foodImages[name.toLowerCase()];
   };
 
-  // if (loading) {
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-  //       <Text>Loading...</Text>
-  //     </View>
-  //   );
-  // }
-
   return (
     <SafeAreaView style={InsightsPageStyle.modernSafeContainer}>
       <StatusBar style="light" backgroundColor={colors.tertiary} />
@@ -73,13 +61,13 @@ const FoodInsightsScreen: React.FC = () => {
       <View style={InsightsPageStyle.modernHeaderSection}>
         <View style={InsightsPageStyle.headerContent}>
           <View style={InsightsPageStyle.titleContainer}>
-            <Text style={InsightsPageStyle.modernPageTitle}>Food Insights</Text>
+            <Text style={InsightsPageStyle.modernPageTitle}>Food Library</Text>
             <Text style={InsightsPageStyle.modernPageSubtitle}>
-              Discover nutritional benefits and digestive properties
+              Explore nutritional benefits and digestive properties
             </Text>
           </View>
           <View style={InsightsPageStyle.headerIconContainer}>
-            <Feather name="info" size={24} color={colors.tertiary} />
+            <Feather name="info" size={24} color="#fff" />
           </View>
         </View>
       </View>

@@ -10,6 +10,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar } from 'react-native';
@@ -155,12 +156,18 @@ const Login = () => {
             {/* Button Section */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.button}
+                style={[styles.button, loading && styles.buttonDisabled]}
                 onPress={handleLogin}
-                activeOpacity={0.9}
+                disabled={loading}
+                activeOpacity={0.8}
               >
                 {loading ? (
-                  <Text style={styles.buttonText}>Logging In...</Text>
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                      Logging In...
+                    </Text>
+                  </View>
                 ) : (
                   <Text style={styles.buttonText}>Log In</Text>
                 )}
@@ -217,6 +224,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 50,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonContainer: {
     width: '100%',
