@@ -4,10 +4,70 @@ export const searchFood = async (req, res) => {
   try {
     const { query } = req.query;
 
-    // Case-insensitive search
-    const food = await Food.findOne({
-      name: { $regex: new RegExp(query, 'i') },
+    // Improved search with ranking system
+    let food = null;
+    const searchTerm = query.toLowerCase().trim();
+
+    // Priority 1: Exact match on main name (case-insensitive)
+    food = await Food.findOne({
+      name: { $regex: new RegExp(`^${query}$`, 'i') },
     });
+
+    if (!food) {
+      // Priority 2: Find all foods that match in name or otherNames
+      const matchingFoods = await Food.find({
+        $or: [
+          { name: { $regex: new RegExp(query, 'i') } },
+          { 'otherNames.name': { $regex: new RegExp(query, 'i') } },
+        ],
+      });
+
+      if (matchingFoods.length > 0) {
+        // Rank the results for better matching
+        const rankedFoods = matchingFoods.map((foodItem) => {
+          let score = 0;
+          const foodName = foodItem.name.toLowerCase();
+
+          // Higher score for exact matches
+          if (foodName === searchTerm) {
+            score += 100;
+          }
+          // Higher score for names that start with the search term
+          else if (foodName.startsWith(searchTerm)) {
+            score += 50;
+          }
+          // Higher score for shorter names (more specific)
+          score += Math.max(0, 20 - foodName.length);
+
+          // Check otherNames for matches
+          if (foodItem.otherNames && foodItem.otherNames.length > 0) {
+            foodItem.otherNames.forEach((otherName) => {
+              const otherNameLower = otherName.name.toLowerCase();
+              if (otherNameLower === searchTerm) {
+                score += 80; // High score for exact match in otherNames
+              } else if (otherNameLower.includes(searchTerm)) {
+                score += 30; // Medium score for partial match in otherNames
+              }
+            });
+          }
+
+          return { food: foodItem, score };
+        });
+
+        // Sort by score (highest first) and pick the best match
+        rankedFoods.sort((a, b) => b.score - a.score);
+        food = rankedFoods[0].food;
+
+        console.log('🔍 Search ranking for query:', query, {
+          totalMatches: rankedFoods.length,
+          selectedFood: food.name,
+          rankings: rankedFoods.slice(0, 3).map((r) => ({
+            name: r.food.name,
+            score: r.score,
+          })),
+        });
+      }
+    }
 
     if (!food) {
       return res.status(404).json({ message: 'Food not found' });
