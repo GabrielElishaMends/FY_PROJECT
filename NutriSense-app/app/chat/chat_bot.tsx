@@ -109,7 +109,7 @@ const ChatbotScreen: React.FC<ChatbotScreenProps> = ({
         {parts.map((part, index) => {
           // Skip empty parts
           if (!part) {
-            return null;
+            return '';
           }
 
           // Check if it's bold text (**text**)

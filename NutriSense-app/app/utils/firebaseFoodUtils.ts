@@ -164,6 +164,7 @@ export const saveFoodHistory = async ({
   calories,
   createdAt,
   portionMultiplier = 1,
+  combinedNutrition, // New parameter for pre-calculated nutrition including top-ons
 }: {
   userId: string;
   imageUri: string | number | null;
@@ -171,13 +172,16 @@ export const saveFoodHistory = async ({
   calories: string | number;
   createdAt: string;
   portionMultiplier?: number;
+  combinedNutrition?: {
+    // Optional - if provided, use these values instead of looking up
+    calories: number;
+    carbs: number;
+    protein: number;
+    fat: number;
+  };
 }) => {
   try {
-    console.log('💾 Saving food history for:', foodName);
-
-    // Find the food details from our local database
-    const foodDetails = findFoodByName(foodName);
-    console.log('🔍 Food lookup result:', foodDetails);
+    console.log('� Saving food history for:', foodName);
 
     let nutritionData = {
       calories:
@@ -187,20 +191,48 @@ export const saveFoodHistory = async ({
       fat: 0,
     };
 
-    // If we found the food in our database, use its nutrition data
-    if (foodDetails) {
+    // If combined nutrition is provided (includes top-ons), use it
+    if (combinedNutrition) {
       nutritionData = {
-        calories: foodDetails.calories * portionMultiplier,
-        carbs: foodDetails.carbs * portionMultiplier,
-        protein: foodDetails.protein * portionMultiplier,
-        fat: foodDetails.fat * portionMultiplier,
+        calories: combinedNutrition.calories * portionMultiplier,
+        carbs: combinedNutrition.carbs * portionMultiplier,
+        protein: combinedNutrition.protein * portionMultiplier,
+        fat: combinedNutrition.fat * portionMultiplier,
       };
-      console.log('✅ Using nutrition data from database:', nutritionData);
-    } else {
       console.log(
-        '⚠️ Food not found in database, using calories only:',
-        nutritionData
+        '✅ Using combined nutrition data (from MongoDB + top-ons):',
+        {
+          foodName,
+          receivedCombinedNutrition: combinedNutrition,
+          portionMultiplier,
+          finalNutritionData: nutritionData,
+          receivedTypes: {
+            carbsType: typeof combinedNutrition.carbs,
+            proteinType: typeof combinedNutrition.protein,
+            fatType: typeof combinedNutrition.fat,
+          },
+        }
       );
+    } else {
+      // Find the food details from our local database (fallback behavior)
+      const foodDetails = findFoodByName(foodName);
+      console.log('🔍 Food lookup result:', foodDetails);
+
+      // If we found the food in our database, use its nutrition data
+      if (foodDetails) {
+        nutritionData = {
+          calories: foodDetails.calories * portionMultiplier,
+          carbs: foodDetails.carbs * portionMultiplier,
+          protein: foodDetails.protein * portionMultiplier,
+          fat: foodDetails.fat * portionMultiplier,
+        };
+        console.log('✅ Using nutrition data from database:', nutritionData);
+      } else {
+        console.log(
+          '⚠️ Food not found in database, using calories only:',
+          nutritionData
+        );
+      }
     }
 
     const historyData: any = {
@@ -222,7 +254,23 @@ export const saveFoodHistory = async ({
       }
     });
 
-    console.log('💾 Saving food history with nutrition data:', historyData);
+    console.log('💾 FINAL - Saving food history with nutrition data:', {
+      foodName: historyData.name,
+      finalHistoryData: historyData,
+      nutritionValues: {
+        calories: historyData.calories,
+        carbs: historyData.carbs,
+        protein: historyData.protein,
+        fat: historyData.fat,
+      },
+      valueTypes: {
+        carbsType: typeof historyData.carbs,
+        proteinType: typeof historyData.protein,
+        fatType: typeof historyData.fat,
+        caloriesType: typeof historyData.calories,
+      },
+    });
+
     await addDoc(collection(db, 'history'), historyData);
   } catch (error) {
     console.error('Error saving food history:', error);

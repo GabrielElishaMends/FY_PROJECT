@@ -16,10 +16,29 @@ const HomePageStyles = StyleSheet.create({
   },
   analyzeButton: {
     backgroundColor: '#4CAF50',
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 10,
+    elevation: 4,
+    shadowColor: '#4CAF50',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
+    elevation: 2,
+    shadowColor: '#999',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
   },
   appLogo: {
     width: 30,

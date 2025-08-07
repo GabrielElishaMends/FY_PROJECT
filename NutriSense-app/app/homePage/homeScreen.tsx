@@ -21,10 +21,20 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Animated, Easing } from 'react-native';
 import NutriHeader from './NutriHeader';
 import HomeInsights from './HomeInsights';
-import { uploadImageAsync, saveFoodHistory } from '../utils/firebaseFoodUtils';
+import {
+  uploadImageAsync,
+  saveFoodHistory,
+  getUserProfile,
+} from '../utils/firebaseFoodUtils';
 import axios from 'axios';
 import { BackendLink } from '@/components/Default';
 import foodImages from '@/assets/foodImages/foodImages';
+import TopOnsModal from '../components/TopOnsModal';
+import { SelectedTopOn, sumTopOnsNutrition } from '../utils/topOnsData';
+import {
+  updateNutrientBreakdownWithTopOns,
+  PersonalizedDailyValues,
+} from '../utils/nutrientBreakdownUtils';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -42,6 +52,18 @@ const HomeScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
+
+  // User profile and personalized daily values
+  const [personalizedDailyValues, setPersonalizedDailyValues] = useState<
+    PersonalizedDailyValues | undefined
+  >(undefined);
+
+  // Top-ons modal state
+  const [showTopOnsModal, setShowTopOnsModal] = useState(false);
+  const [selectedTopOns, setSelectedTopOns] = useState<SelectedTopOn[]>([]);
+  const [pendingAnalysis, setPendingAnalysis] = useState<
+    'image' | 'search' | null
+  >(null);
 
   useEffect(() => {
     (async () => {
@@ -62,6 +84,34 @@ const HomeScreen = () => {
     });
     return unsubscribe;
   }, []);
+
+  // Fetch user profile and calculate personalized daily values
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (auth.currentUser) {
+        try {
+          const userProfile = await getUserProfile(auth.currentUser.uid);
+          if (
+            userProfile &&
+            userProfile.dailyCarbs &&
+            userProfile.dailyProtein &&
+            userProfile.dailyFat
+          ) {
+            setPersonalizedDailyValues({
+              carbohydrates: userProfile.dailyCarbs,
+              protein: userProfile.dailyProtein,
+              fats: userProfile.dailyFat,
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          // Will use default values if profile fetch fails
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [auth.currentUser]);
 
   const handleTakePicture = async () => {
     if (hasPermission === null) return;
@@ -94,6 +144,23 @@ const HomeScreen = () => {
   };
 
   const handleAnalyzeImage = async () => {
+    if (!image || !auth.currentUser) return;
+
+    // Show top-ons modal first
+    setPendingAnalysis('image');
+    setShowTopOnsModal(true);
+  };
+
+  const handleSearch = async () => {
+    if (!food.trim()) return;
+
+    // Show top-ons modal first
+    setPendingAnalysis('search');
+    setShowTopOnsModal(true);
+  };
+
+  // New function to handle the actual image analysis after top-ons selection
+  const performImageAnalysis = async (topOns: SelectedTopOn[]) => {
     if (!image || !auth.currentUser) return;
 
     try {
@@ -139,6 +206,56 @@ const HomeScreen = () => {
       });
       const foodDetails = foodDetailsResponse.data;
 
+      // Always preserve base nutrition values
+      const baseCarbs = foodDetails.carbs || 0;
+      const baseProtein = foodDetails.protein || 0;
+      const baseFat = foodDetails.fat || 0;
+
+      // Add top-ons nutrition to the food details
+      if (topOns.length > 0) {
+        const topOnsNutrition = sumTopOnsNutrition(topOns);
+
+        // Ensure numeric conversion to prevent string concatenation
+        const baseCalories = parseInt(foodDetails.numCalories) || 0;
+        const topOnsCalories = topOnsNutrition.calories || 0;
+
+        // Combine base food nutrition with top-ons
+        foodDetails.numCalories = baseCalories + topOnsCalories;
+
+        console.log('🔥 AI Analysis - Calories calculation:', {
+          baseCalories,
+          topOnsCalories,
+          total: foodDetails.numCalories,
+          topOnsDetails: topOns.map((t) => ({
+            name: t.name,
+            quantity: t.quantity,
+            totalCal: t.totalCalories,
+          })),
+        });
+
+        // Update nutrient breakdown with combined values using helper function
+        if (foodDetails.nutrientBreakdown) {
+          foodDetails.nutrientBreakdown = updateNutrientBreakdownWithTopOns(
+            foodDetails.nutrientBreakdown,
+            topOnsNutrition,
+            personalizedDailyValues || undefined
+          );
+        }
+
+        // Store the combined nutrition values for easy access during saving
+        foodDetails.carbs = baseCarbs + topOnsNutrition.carbohydrates;
+        foodDetails.protein = baseProtein + topOnsNutrition.protein;
+        foodDetails.fat = baseFat + topOnsNutrition.fats;
+
+        // Store selected top-ons for later reference
+        foodDetails.selectedTopOns = topOns;
+      } else {
+        // No top-ons selected - preserve original base values
+        foodDetails.carbs = baseCarbs;
+        foodDetails.protein = baseProtein;
+        foodDetails.fat = baseFat;
+      }
+
       // Set the image URI in the searchedFood object (don't save automatically)
       foodDetails.imageUri = imageUri;
       foodDetails.capturedImage = image; // Store the original captured image
@@ -151,6 +268,153 @@ const HomeScreen = () => {
     } finally {
       setIsScanning(false);
     }
+  };
+
+  // New function to handle the actual search after top-ons selection
+  const performSearch = async (topOns: SelectedTopOn[]) => {
+    if (!food.trim()) return;
+    try {
+      const response = await axios.get(`${BackendLink}/search`, {
+        params: { query: food.trim() },
+      });
+      const foodDetails = response.data;
+
+      console.log('🔍 DEBUG - Raw MongoDB response:', {
+        name: foodDetails.name,
+        rawCarbs: foodDetails.carbs,
+        rawProtein: foodDetails.protein,
+        rawFat: foodDetails.fat,
+        rawCalories: foodDetails.numCalories,
+        fullResponse: foodDetails,
+      });
+
+      // Always preserve base nutrition values
+      const baseCarbs = foodDetails.carbs || 0;
+      const baseProtein = foodDetails.protein || 0;
+      const baseFat = foodDetails.fat || 0;
+
+      console.log('🔍 DEBUG - Base nutrition from MongoDB:', {
+        name: foodDetails.name,
+        baseCarbs,
+        baseProtein,
+        baseFat,
+        baseTypes: {
+          carbsType: typeof foodDetails.carbs,
+          proteinType: typeof foodDetails.protein,
+          fatType: typeof foodDetails.fat,
+        },
+      });
+
+      // Add top-ons nutrition to the food details
+      if (topOns.length > 0) {
+        const topOnsNutrition = sumTopOnsNutrition(topOns);
+
+        // Ensure numeric conversion to prevent string concatenation
+        const baseCalories = parseInt(foodDetails.numCalories) || 0;
+        const topOnsCalories = topOnsNutrition.calories || 0;
+
+        // Combine base food nutrition with top-ons
+        foodDetails.numCalories = baseCalories + topOnsCalories;
+
+        console.log('🔥 Manual Search - Calories calculation:', {
+          baseCalories,
+          topOnsCalories,
+          total: foodDetails.numCalories,
+          topOnsDetails: topOns.map((t) => ({
+            name: t.name,
+            quantity: t.quantity,
+            totalCal: t.totalCalories,
+          })),
+        });
+
+        // Update nutrient breakdown with combined values using helper function
+        if (foodDetails.nutrientBreakdown) {
+          foodDetails.nutrientBreakdown = updateNutrientBreakdownWithTopOns(
+            foodDetails.nutrientBreakdown,
+            topOnsNutrition,
+            personalizedDailyValues || undefined
+          );
+        }
+
+        // Store the combined nutrition values for easy access during saving
+        foodDetails.carbs = baseCarbs + topOnsNutrition.carbohydrates;
+        foodDetails.protein = baseProtein + topOnsNutrition.protein;
+        foodDetails.fat = baseFat + topOnsNutrition.fats;
+
+        // Store selected top-ons for later reference
+        foodDetails.selectedTopOns = topOns;
+      } else {
+        // No top-ons selected - preserve original base values
+        foodDetails.carbs = baseCarbs;
+        foodDetails.protein = baseProtein;
+        foodDetails.fat = baseFat;
+
+        console.log('🔍 DEBUG - No top-ons selected, preserving base values:', {
+          name: foodDetails.name,
+          preservedCarbs: foodDetails.carbs,
+          preservedProtein: foodDetails.protein,
+          preservedFat: foodDetails.fat,
+          originalBaseValues: { baseCarbs, baseProtein, baseFat },
+          valueTypes: {
+            carbsType: typeof foodDetails.carbs,
+            proteinType: typeof foodDetails.protein,
+            fatType: typeof foodDetails.fat,
+          },
+        });
+      }
+
+      // Don't save automatically - let user choose
+      const foodKey = foodDetails.name?.toLowerCase().replace(/_/g, ' ').trim();
+      const defaultImage = foodImages[foodKey] || null;
+
+      // Store the default image for potential saving later
+      foodDetails.defaultImage = defaultImage;
+
+      setSearchedFood(foodDetails);
+      setIsAnalyzed(true);
+    } catch (error: any) {
+      setSearchedFood(null);
+      setIsAnalyzed(false);
+      alert(
+        error?.response?.data?.message || 'Food not found. Try another name.'
+      );
+    }
+  };
+
+  // Handle top-ons modal confirmation
+  const handleTopOnsConfirm = async (topOns: SelectedTopOn[]) => {
+    setSelectedTopOns(topOns);
+    setShowTopOnsModal(false);
+
+    // Perform the appropriate analysis based on pending type
+    if (pendingAnalysis === 'image') {
+      await performImageAnalysis(topOns);
+    } else if (pendingAnalysis === 'search') {
+      await performSearch(topOns);
+    }
+
+    setPendingAnalysis(null);
+  };
+
+  // Handle top-ons modal skip
+  const handleTopOnsSkip = async () => {
+    setSelectedTopOns([]);
+    setShowTopOnsModal(false);
+
+    // Perform the appropriate analysis without top-ons
+    if (pendingAnalysis === 'image') {
+      await performImageAnalysis([]);
+    } else if (pendingAnalysis === 'search') {
+      await performSearch([]);
+    }
+
+    setPendingAnalysis(null);
+  };
+
+  // Handle top-ons modal close
+  const handleTopOnsClose = () => {
+    setShowTopOnsModal(false);
+    setPendingAnalysis(null);
   };
 
   const startScanAnimation = () => {
@@ -173,32 +437,6 @@ const HomeScreen = () => {
     ).start();
   };
 
-  const handleSearch = async () => {
-    if (!food.trim()) return;
-    try {
-      const response = await axios.get(`${BackendLink}/search`, {
-        params: { query: food.trim() },
-      });
-      const foodDetails = response.data;
-
-      // Don't save automatically - let user choose
-      const foodKey = foodDetails.name?.toLowerCase().replace(/_/g, ' ').trim();
-      const defaultImage = foodImages[foodKey] || null;
-
-      // Store the default image for potential saving later
-      foodDetails.defaultImage = defaultImage;
-
-      setSearchedFood(foodDetails);
-      setIsAnalyzed(true);
-    } catch (error: any) {
-      setSearchedFood(null);
-      setIsAnalyzed(false);
-      alert(
-        error?.response?.data?.message || 'Food not found. Try another name.'
-      );
-    }
-  };
-
   // Function to save food to history
   const handleSaveToHistory = async () => {
     if (!searchedFood || !auth.currentUser) return;
@@ -207,13 +445,45 @@ const HomeScreen = () => {
       setIsSaving(true);
       const imageToSave = searchedFood.imageUri || searchedFood.defaultImage;
 
+      // Debug: Log the searchedFood values
+      console.log('🔍 DEBUG - searchedFood before saving:', {
+        name: searchedFood.name,
+        numCalories: searchedFood.numCalories,
+        carbs: searchedFood.carbs,
+        protein: searchedFood.protein,
+        fat: searchedFood.fat,
+        hasSelectedTopOns: searchedFood.selectedTopOns
+          ? searchedFood.selectedTopOns.length > 0
+          : false,
+        selectedTopOns: searchedFood.selectedTopOns || [],
+      });
+
+      // Prepare combined nutrition data that includes top-ons (or base values if no top-ons)
+      const combinedNutrition = {
+        calories: parseInt(searchedFood.numCalories) || 0,
+        carbs: searchedFood.carbs || 0,
+        protein: searchedFood.protein || 0,
+        fat: searchedFood.fat || 0,
+      };
+
+      console.log('🔍 DEBUG - combinedNutrition to save:', combinedNutrition);
+      console.log('🔍 DEBUG - Nutrition value types:', {
+        carbsType: typeof searchedFood.carbs,
+        proteinType: typeof searchedFood.protein,
+        fatType: typeof searchedFood.fat,
+        carbsValue: searchedFood.carbs,
+        proteinValue: searchedFood.protein,
+        fatValue: searchedFood.fat,
+      });
+
       await saveFoodHistory({
         userId: auth.currentUser.uid,
         imageUri: imageToSave,
         foodName: searchedFood.name,
-        calories: searchedFood.numCalories,
+        calories: parseInt(searchedFood.numCalories) || 0,
         createdAt: new Date().toISOString(),
         portionMultiplier: searchedFood.portionMultiplier || 1,
+        combinedNutrition, // Pass the combined nutrition data
       });
 
       alert('Food saved to your nutrition history!');
@@ -237,6 +507,7 @@ const HomeScreen = () => {
     setSearchedFood(null);
     setImage(null);
     setFood('');
+    setSelectedTopOns([]); // Reset selected top-ons
   };
 
   return (
@@ -410,12 +681,40 @@ const HomeScreen = () => {
                         </View>
 
                         <TouchableOpacity
-                          style={HomePageStyles.analyzeButton}
+                          style={[
+                            HomePageStyles.analyzeButton,
+                            isScanning && HomePageStyles.disabledButton,
+                          ]}
                           onPress={handleAnalyzeImage}
                           activeOpacity={0.8}
+                          disabled={isScanning}
                         >
-                          <Text style={HomePageStyles.buttonText}>Analyze</Text>
+                          <Text style={HomePageStyles.buttonText}>
+                            {isScanning
+                              ? 'Analyzing...'
+                              : selectedTopOns.length > 0
+                              ? `Analyze with ${selectedTopOns.length} protein${
+                                  selectedTopOns.length > 1 ? 's' : ''
+                                }`
+                              : 'Select Proteins & Analyze'}
+                          </Text>
                         </TouchableOpacity>
+
+                        {/* Show selected top-ons summary */}
+                        {selectedTopOns.length > 0 && (
+                          <View style={topOnsSummaryStyles.container}>
+                            <Text style={topOnsSummaryStyles.title}>
+                              Selected Proteins:
+                            </Text>
+                            <Text style={topOnsSummaryStyles.items}>
+                              {selectedTopOns
+                                .map(
+                                  (topOn) => `${topOn.quantity}x ${topOn.name}`
+                                )
+                                .join(', ')}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     )}
                   </>
@@ -476,9 +775,27 @@ const HomeScreen = () => {
                     >
                       <Feather name="search" size={20} color="#fff" />
                       <Text style={HomePageStyles.searchButtonText}>
-                        Search Food
+                        {selectedTopOns.length > 0
+                          ? `Search with ${selectedTopOns.length} protein${
+                              selectedTopOns.length > 1 ? 's' : ''
+                            }`
+                          : 'Select Proteins & Search'}
                       </Text>
                     </TouchableOpacity>
+
+                    {/* Show selected top-ons summary */}
+                    {selectedTopOns.length > 0 && (
+                      <View style={topOnsSummaryStyles.container}>
+                        <Text style={topOnsSummaryStyles.title}>
+                          Selected Proteins:
+                        </Text>
+                        <Text style={topOnsSummaryStyles.items}>
+                          {selectedTopOns
+                            .map((topOn) => `${topOn.quantity}x ${topOn.name}`)
+                            .join(', ')}
+                        </Text>
+                      </View>
+                    )}
 
                     <View style={HomePageStyles.suggestionContainer}>
                       <Text style={HomePageStyles.suggestionTitle}>
@@ -573,8 +890,39 @@ const HomeScreen = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Top-ons Modal */}
+      <TopOnsModal
+        visible={showTopOnsModal}
+        onClose={handleTopOnsClose}
+        onConfirm={handleTopOnsConfirm}
+        onSkip={handleTopOnsSkip}
+      />
     </SafeAreaView>
   );
+};
+
+const topOnsSummaryStyles = {
+  container: {
+    backgroundColor: '#f0f8f0',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 20, // Added bottom margin for spacing
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  title: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  items: {
+    fontSize: 11,
+    color: '#666',
+    lineHeight: 16,
+  },
 };
 
 const actionButtonStyles = {
@@ -582,8 +930,8 @@ const actionButtonStyles = {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
     paddingHorizontal: 8, // Reduced to push buttons to edges
-    paddingVertical: 20,
-    paddingBottom: 20, // Reduced bottom padding
+    paddingVertical: 12, // Reduced from 20 to 12
+    paddingBottom: 20, // Keep bottom padding for safe area
     gap: 16, // Increased gap between buttons
   },
   saveButton: {

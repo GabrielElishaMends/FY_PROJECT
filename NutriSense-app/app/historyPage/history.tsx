@@ -25,11 +25,14 @@ import foodImages from '../../assets/foodImages/foodImages';
 
 dayjs.extend(relativeTime);
 
-// Update type definition
+// Update type definition to include nutrition data
 type HistoryItemType = {
   id: string;
   name: string;
   calories: string;
+  carbs: number;
+  protein: number;
+  fat: number;
   imageUri: string | number;
   timeAgo: string;
 };
@@ -73,6 +76,9 @@ const HistoryScreen = () => {
               id: doc.id,
               name,
               calories: data.calories ?? '0',
+              carbs: data.carbs ?? 0,
+              protein: data.protein ?? 0,
+              fat: data.fat ?? 0,
               imageUri,
               timeAgo: dayjs(data.createdAt?.toDate()).fromNow(),
             };
@@ -106,9 +112,13 @@ const HistoryScreen = () => {
         </View>
 
         {loading ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <View
+            style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+          >
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={{ marginTop: 10, color: '#555' }}>Loading history...</Text>
+            <Text style={{ marginTop: 10, color: '#555' }}>
+              Loading history...
+            </Text>
           </View>
         ) : (
           <HistoryList data={historyData} />

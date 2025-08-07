@@ -492,8 +492,18 @@ const UserInfoScreen = () => {
                 />
                 <TouchableOpacity
                   style={styles.suggestButton}
-                  onPress={() => setShowHeightModal(true)}
+                  onPress={() => {
+                    if (!age.trim()) {
+                      Alert.alert(
+                        'Age Required',
+                        'Please enter your age first to get height suggestions.'
+                      );
+                      return;
+                    }
+                    setShowHeightModal(true);
+                  }}
                   disabled={!age}
+                  activeOpacity={0.8}
                 >
                   <Text style={styles.suggestButtonText}>?</Text>
                 </TouchableOpacity>
@@ -515,8 +525,18 @@ const UserInfoScreen = () => {
                 />
                 <TouchableOpacity
                   style={styles.suggestButton}
-                  onPress={() => setShowWeightModal(true)}
+                  onPress={() => {
+                    if (!age.trim()) {
+                      Alert.alert(
+                        'Age Required',
+                        'Please enter your age first to get weight suggestions.'
+                      );
+                      return;
+                    }
+                    setShowWeightModal(true);
+                  }}
                   disabled={!age}
+                  activeOpacity={0.8}
                 >
                   <Text style={styles.suggestButtonText}>?</Text>
                 </TouchableOpacity>
@@ -536,6 +556,7 @@ const UserInfoScreen = () => {
                     activityLevel === option.key && styles.activityOptionActive,
                   ]}
                   onPress={() => setActivityLevel(option.key as any)}
+                  activeOpacity={0.8}
                 >
                   <View style={styles.activityContent}>
                     <Text

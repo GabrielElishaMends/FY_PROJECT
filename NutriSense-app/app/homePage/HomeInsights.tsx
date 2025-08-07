@@ -9,7 +9,7 @@ import foodImages from '../../assets/foodImages/foodImages';
 
 interface HomeInsightsProps {
   foodName?: string;
-  numCalories?: string;
+  numCalories?: string | number; // Accept both string and number for flexibility
   imageSource?: string | number;
   digestionTime?: string;
   timeToEat?: string;
@@ -226,7 +226,7 @@ const HomeInsights: React.FC<HomeInsightsProps> = ({
           const label = item.nutrient || item.label;
           const value = item.info || item.value;
           const width = item.percentDailyValue?.toString() || item.width || '0';
-          const color = item.color || '#4cae4f';
+          const color = item.color || '#4cae4f'; // Use color from backend or default green
 
           return (
             <View style={HomeInsightsStyles.nutrientRow} key={index}>
@@ -237,13 +237,13 @@ const HomeInsights: React.FC<HomeInsightsProps> = ({
               <View
                 style={[
                   HomeInsightsStyles.nutrientBarBackground,
-                  { backgroundColor: color },
+                  { backgroundColor: color }, // Background uses backend color
                 ]}
               >
                 <View
                   style={[
                     HomeInsightsStyles.nutrientBarFill,
-                    { width: `${width}%`, backgroundColor: '#4cae4f' },
+                    { width: `${width}%`, backgroundColor: '#4cae4f' }, // Fill bar uses consistent green
                   ]}
                 />
               </View>
@@ -270,7 +270,10 @@ const HomeInsights: React.FC<HomeInsightsProps> = ({
         >
           <Text style={HomeInsightsStyles.foodName}>{foodName}</Text>
           <Text style={HomeInsightsStyles.foodCalories}>
-            {numCalories} kcal per serving
+            {typeof numCalories === 'number'
+              ? numCalories
+              : parseInt(numCalories || '0')}{' '}
+            kcal per serving
           </Text>
         </LinearGradient>
       </ImageBackground>

@@ -100,7 +100,19 @@ export default function HistoryDetailsScreen() {
     };
 
     fetchFoodDetails();
-  }, [params]);
+  }, [
+    params.name,
+    params.isLoading,
+    params.calories,
+    params.imageUri,
+    params.digestionTime,
+    params.timeToEat,
+    params.digestionComplexity,
+    params.additionalDigestionNotes,
+    params.benefits,
+    params.cautions,
+    params.nutrientBreakdown,
+  ]);
 
   const handleGoBack = () => {
     navigation.goBack();

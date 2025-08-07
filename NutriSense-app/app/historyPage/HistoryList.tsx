@@ -13,20 +13,24 @@ import axios from 'axios';
 import { BackendLink } from '@/components/Default';
 import NoHistoryScreen from './NoHistoryScreen';
 
-// Update the HistoryItemType to include all fields
+// Basic history item type that matches what's saved in Firebase
 type HistoryItemType = {
   id: string;
   name: string;
   calories: string;
+  carbs: number;
+  protein: number;
+  fat: number;
   imageUri: string | number;
   timeAgo: string;
-  digestionComplexity: string;
-  digestionTime: string;
-  timeToEat: string;
-  additionalDigestionNotes: string;
-  benefits: Array<{ title: string; info: string }>;
-  cautions: Array<{ title: string; info: string }>;
-  nutrientBreakdown: Array<{
+  // Optional fields for backwards compatibility
+  digestionComplexity?: string;
+  digestionTime?: string;
+  timeToEat?: string;
+  additionalDigestionNotes?: string;
+  benefits?: Array<{ title: string; info: string }>;
+  cautions?: Array<{ title: string; info: string }>;
+  nutrientBreakdown?: Array<{
     nutrient?: string;
     label?: string;
     info?: string;
@@ -58,6 +62,36 @@ const HistoryItem = ({ item }: { item: HistoryItemType }) => {
 
       const foodDetails = response.data;
 
+      // Create nutrient breakdown using the saved nutrition values (includes top-ons)
+      // Note: Using default FDA values since user profile isn't available in history context
+      // Future enhancement: Could pass user profile from parent component
+      const nutrientBreakdown = [
+        {
+          nutrient: 'Carbohydrate',
+          info: `${item.carbs.toFixed(1)}g (${Math.round(
+            (item.carbs / 300) * 100
+          )}% DV)`,
+          percentDailyValue: Math.round((item.carbs / 300) * 100),
+          color: '#FF6B6B',
+        },
+        {
+          nutrient: 'Protein',
+          info: `${item.protein.toFixed(1)}g (${Math.round(
+            (item.protein / 50) * 100
+          )}% DV)`,
+          percentDailyValue: Math.round((item.protein / 50) * 100),
+          color: '#4ECDC4',
+        },
+        {
+          nutrient: 'Fat',
+          info: `${item.fat.toFixed(1)}g (${Math.round(
+            (item.fat / 65) * 100
+          )}% DV)`,
+          percentDailyValue: Math.round((item.fat / 65) * 100),
+          color: '#45B7D1',
+        },
+      ];
+
       // Ensure imageUri is properly converted to string
       const imageUri =
         typeof item.imageUri === 'string'
@@ -68,7 +102,7 @@ const HistoryItem = ({ item }: { item: HistoryItemType }) => {
         pathname: '/historyPage/HistoryDetailsScreen',
         params: {
           name: foodDetails.name,
-          calories: foodDetails.numCalories,
+          calories: item.calories, // Use saved calories (includes top-ons)
           imageUri: imageUri, // Keep the ORIGINAL image from history
           timeAgo: item.timeAgo,
           digestionComplexity: foodDetails.digestionComplexity,
@@ -77,9 +111,7 @@ const HistoryItem = ({ item }: { item: HistoryItemType }) => {
           additionalDigestionNotes: foodDetails.additionalDigestionNotes,
           benefits: JSON.stringify(foodDetails.benefits || []),
           cautions: JSON.stringify(foodDetails.cautions || []),
-          nutrientBreakdown: JSON.stringify(
-            foodDetails.nutrientBreakdown || []
-          ),
+          nutrientBreakdown: JSON.stringify(nutrientBreakdown), // Use calculated breakdown with saved values
           detectionMethod: item.detectionMethod || 'search',
           confidence: item.confidence || null,
           isUserUploadedImage:

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { StatusBar as RNStatusBar } from 'react-native';
@@ -27,6 +28,8 @@ import {
   UserHealthInfo,
   calculateDailyCalories,
   calculateMacronutrients,
+  getHeightSuggestions,
+  getWeightSuggestions,
 } from '../utils/calculateCalories';
 import { reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 
@@ -44,6 +47,8 @@ const EditProfile = () => {
   const [imageLoading, setImageLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showHeightModal, setShowHeightModal] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
 
   // Health information states
   const [age, setAge] = useState('');
@@ -236,6 +241,146 @@ const EditProfile = () => {
     }
   };
 
+  const renderHeightSuggestions = () => {
+    const ageNum = parseInt(age) || 25;
+    const suggestions = getHeightSuggestions(ageNum);
+
+    return (
+      <Modal visible={showHeightModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Height Suggestions</Text>
+            <Text style={styles.modalSubtitle}>
+              Typical height range for {suggestions.ageGroup} (age {ageNum}):
+            </Text>
+            <Text style={styles.suggestionText}>
+              {suggestions.min} - {suggestions.max} {suggestions.unit}
+            </Text>
+
+            <View style={styles.suggestionButtons}>
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setHeight(suggestions.min.toString());
+                  setShowHeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {suggestions.min} cm
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setHeight(
+                    Math.round(
+                      (suggestions.min + suggestions.max) / 2
+                    ).toString()
+                  );
+                  setShowHeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {Math.round((suggestions.min + suggestions.max) / 2)} cm
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setHeight(suggestions.max.toString());
+                  setShowHeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {suggestions.max} cm
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowHeightModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderWeightSuggestions = () => {
+    const ageNum = parseInt(age) || 25;
+    const suggestions = getWeightSuggestions(ageNum);
+
+    return (
+      <Modal visible={showWeightModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Weight Suggestions</Text>
+            <Text style={styles.modalSubtitle}>
+              Typical weight range for {suggestions.ageGroup} (age {ageNum}):
+            </Text>
+            <Text style={styles.suggestionText}>
+              {suggestions.min} - {suggestions.max} {suggestions.unit}
+            </Text>
+
+            <View style={styles.suggestionButtons}>
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setWeight(suggestions.min.toString());
+                  setShowWeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {suggestions.min} kg
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setWeight(
+                    Math.round(
+                      (suggestions.min + suggestions.max) / 2
+                    ).toString()
+                  );
+                  setShowWeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {Math.round((suggestions.min + suggestions.max) / 2)} kg
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.suggestionButton}
+                onPress={() => {
+                  setWeight(suggestions.max.toString());
+                  setShowWeightModal(false);
+                }}
+              >
+                <Text style={styles.suggestionButtonText}>
+                  Use {suggestions.max} kg
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowWeightModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar style="light" backgroundColor={colors.tertiary} />
@@ -380,22 +525,60 @@ const EditProfile = () => {
             </View>
 
             {/* Height */}
-            <TextInput
-              style={styles.input}
-              placeholder="Height (cm)"
-              value={height}
-              onChangeText={setHeight}
-              keyboardType="numeric"
-            />
+            <View style={styles.inputWithButton}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                placeholder="Height (cm)"
+                value={height}
+                onChangeText={setHeight}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity
+                style={styles.suggestButton}
+                onPress={() => {
+                  if (!age.trim()) {
+                    Alert.alert(
+                      'Age Required',
+                      'Please enter your age first to get height suggestions.'
+                    );
+                    return;
+                  }
+                  setShowHeightModal(true);
+                }}
+                disabled={!age}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.suggestButtonText}>?</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Weight */}
-            <TextInput
-              style={styles.input}
-              placeholder="Weight (kg)"
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="numeric"
-            />
+            <View style={styles.inputWithButton}>
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                placeholder="Weight (kg)"
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity
+                style={styles.suggestButton}
+                onPress={() => {
+                  if (!age.trim()) {
+                    Alert.alert(
+                      'Age Required',
+                      'Please enter your age first to get weight suggestions.'
+                    );
+                    return;
+                  }
+                  setShowWeightModal(true);
+                }}
+                disabled={!age}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.suggestButtonText}>?</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Activity Level */}
             <Text style={styles.label}>Activity Level</Text>
@@ -524,6 +707,10 @@ const EditProfile = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modals */}
+      {renderHeightSuggestions()}
+      {renderWeightSuggestions()}
     </SafeAreaView>
   );
 };
@@ -739,6 +926,89 @@ const styles = StyleSheet.create({
   backbutton: {
     position: 'absolute',
     left: 20,
+  },
+  inputWithButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  suggestButton: {
+    backgroundColor: colors.tertiary,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 25,
+    margin: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  suggestionText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.tertiary,
+    marginBottom: 20,
+  },
+  suggestionButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 15,
+    justifyContent: 'center',
+  },
+  suggestionButton: {
+    backgroundColor: colors.tertiary,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 80,
+  },
+  suggestionButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  modalCloseButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  modalCloseText: {
+    color: '#666',
+    fontSize: 16,
   },
 });
 

@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   ImageBackground,
-  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -76,7 +75,7 @@ const FoodInsightsScreen: React.FC = () => {
         <View style={InsightsPageStyle.loadingContainer}>
           <ActivityIndicator size="large" color={colors.tertiary} />
           <Text style={InsightsPageStyle.loadingText}>
-            Loading food insights...
+            Loading food library...
           </Text>
         </View>
       ) : (
