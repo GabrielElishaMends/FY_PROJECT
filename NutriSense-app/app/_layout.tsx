@@ -3,55 +3,48 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native';
-import { AuthProvider, useAuth } from './AuthContext';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { useColorScheme } from '@/hooks/useColorScheme';
 
-SplashScreen.preventAutoHideAsync();
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  const auth = useAuth();
-  const userToken = auth?.userToken;
-  const loading = auth?.loading;
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded || loading) return null;
+  if (!loaded) {
+    // Async font loading only occurs in development.
+    return null;
+  }
 
   return (
-    <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          {userToken ? (
-            // Main app tabs/screens
-            <>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="userProfile" />
-              <Stack.Screen name="history" />
-              <Stack.Screen name="+not-found" />
-            </>
-          ) : (
-            // Auth screens
-            <>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="+not-found" />
-            </>
-          )}
-        </Stack>
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="historyPage/history"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="historyPage/HistoryDetailsScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="homePage/userProfile"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="homePage/EditProfile"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style="dark" />
+    </ThemeProvider>
   );
 }

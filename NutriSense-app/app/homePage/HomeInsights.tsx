@@ -15,9 +15,9 @@ interface HomeInsightsProps {
   timeToEat?: string;
   digestionComplexity?: string;
   additionalDigestionNotes?: string;
-  benefits?: Array<{ title: string; info: string }>;
-  cautions?: Array<{ title: string; info: string }>;
-  nutrientBreakdown?: Array<{
+  benefits?: { title: string; info: string }[];
+  cautions?: { title: string; info: string }[];
+  nutrientBreakdown?: {
     nutrient?: string;
     label?: string;
     info?: string;
@@ -25,7 +25,7 @@ interface HomeInsightsProps {
     percentDailyValue?: number;
     width?: string;
     color?: string;
-  }>;
+  }[];
   onBack: () => void;
 }
 

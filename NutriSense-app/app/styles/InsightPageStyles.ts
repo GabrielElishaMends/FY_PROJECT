@@ -1,7 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { Platform, StatusBar } from 'react-native';
+import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
 import colors from '.././config/colors';
-import { Dimensions } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 const horizontalMargin = 15;
@@ -332,11 +330,13 @@ const InsightsPageStyle = StyleSheet.create({
   },
 
   modernHeaderSection: {
-    backgroundColor: colors.tertiary,
+    backgroundColor: 'transparent', // Remove solid background since we'll use gradient
     paddingVertical: 25,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
+    overflow: 'hidden', // Ensure gradient is contained within border radius
+    position: 'relative',
   },
   headerContent: {
     flexDirection: 'row',
@@ -353,12 +353,20 @@ const InsightsPageStyle = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+    letterSpacing: 0.5,
   },
 
   modernPageSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.98)',
     lineHeight: 22,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    letterSpacing: 0.3,
   },
 
   headerIconContainer: {

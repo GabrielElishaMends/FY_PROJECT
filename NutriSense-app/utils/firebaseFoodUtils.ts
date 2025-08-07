@@ -12,10 +12,8 @@ import {
   doc,
   setDoc,
   getDoc,
-  updateDoc,
-  arrayUnion,
 } from 'firebase/firestore';
-import { db, auth } from '../../firebaseConfig';
+import { db } from '../firebaseConfig';
 import { FoodItem, GHANAIAN_FOODS } from './foodData';
 import { DailyNutritionNeeds, WeeklyNutritionNeeds } from './calculateCalories';
 
@@ -191,13 +189,20 @@ export const saveFoodHistory = async ({
       fat: 0,
     };
 
+    // Helper function to round to max 3 decimal places and remove trailing zeros
+    const roundNutrition = (value: number): number => {
+      return Math.round(value * 1000) / 1000;
+    };
+
     // If combined nutrition is provided (includes top-ons), use it
     if (combinedNutrition) {
       nutritionData = {
-        calories: combinedNutrition.calories * portionMultiplier,
-        carbs: combinedNutrition.carbs * portionMultiplier,
-        protein: combinedNutrition.protein * portionMultiplier,
-        fat: combinedNutrition.fat * portionMultiplier,
+        calories: roundNutrition(
+          combinedNutrition.calories * portionMultiplier
+        ),
+        carbs: roundNutrition(combinedNutrition.carbs * portionMultiplier),
+        protein: roundNutrition(combinedNutrition.protein * portionMultiplier),
+        fat: roundNutrition(combinedNutrition.fat * portionMultiplier),
       };
       console.log(
         '✅ Using combined nutrition data (from MongoDB + top-ons):',
@@ -221,10 +226,10 @@ export const saveFoodHistory = async ({
       // If we found the food in our database, use its nutrition data
       if (foodDetails) {
         nutritionData = {
-          calories: foodDetails.calories * portionMultiplier,
-          carbs: foodDetails.carbs * portionMultiplier,
-          protein: foodDetails.protein * portionMultiplier,
-          fat: foodDetails.fat * portionMultiplier,
+          calories: roundNutrition(foodDetails.calories * portionMultiplier),
+          carbs: roundNutrition(foodDetails.carbs * portionMultiplier),
+          protein: roundNutrition(foodDetails.protein * portionMultiplier),
+          fat: roundNutrition(foodDetails.fat * portionMultiplier),
         };
         console.log('✅ Using nutrition data from database:', nutritionData);
       } else {

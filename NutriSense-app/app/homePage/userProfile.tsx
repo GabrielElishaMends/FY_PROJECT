@@ -1,26 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  Platform,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import colors from '../config/colors';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '../../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
 import { router } from 'expo-router';
-import { useAuth } from '../AuthContext';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { auth, db } from '../../firebaseConfig';
+import colors from '../config/colors';
 
 // Define navigation types
 type RootStackParamList = {
@@ -33,11 +32,9 @@ const UserProfile = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
-  const [imageLoading, setImageLoading] = useState(false);
   const [userHealthInfo, setUserHealthInfo] = useState<any>(null);
   const [healthInfoLoading, setHealthInfoLoading] = useState(true);
   const [userDataLoading, setUserDataLoading] = useState(true);
-  const authContext = useAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -92,19 +89,9 @@ const UserProfile = () => {
     }
   };
 
-  const handleLogoutContext = async () => {
-    try {
-      await signOut(auth);
-      router.dismissAll();
-      router.replace('/(auth)/signlog');
-    } catch (error) {
-      console.error('Error signing out: ', error);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="light" backgroundColor={colors.tertiary} />
+      <ExpoStatusBar style="light" translucent={true} />
 
       {/* Single ScrollView containing everything */}
       <ScrollView
@@ -136,7 +123,9 @@ const UserProfile = () => {
                 <Text style={styles.userNameLoadingText}>Loading...</Text>
               </View>
             ) : (
-              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.userName}>
+                {userName.trim() || 'Guest User'}
+              </Text>
             )}
             <Text style={styles.userEmail}>
               {userEmail || 'User not logged in'}
@@ -314,7 +303,7 @@ const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
     backgroundColor: colors.tertiary,
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0,
   },
   mainScrollContainer: {
     flex: 1,

@@ -1,35 +1,36 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar as RNStatusBar,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
   TouchableOpacity,
-  Image,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+// import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '@/app/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import {
-  signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
-import GoogleIcon from '../../assets/images/googleIcon';
 import colors from '../config/colors';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../AuthContext';
 
 const Login = () => {
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
   const router = useRouter();
-  const { login } = useAuth();
+  const authContext = useAuth();
+  const { login } = authContext || {};
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -50,7 +51,9 @@ const Login = () => {
         password
       );
       const token = await userCredential.user.getIdToken();
-      login(token); // Call the login function from AuthContext
+      if (login) {
+        login(token); // Call the login function from AuthContext
+      }
       router.replace('/(tabs)/dash_board');
     } catch (error) {
       console.error(error);
@@ -94,95 +97,99 @@ const Login = () => {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar style="dark" backgroundColor="#fff" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Wrap the content in a View with styles.container */}
-        <View style={styles.container}>
-          {/* Header Section */}
-          <View style={styles.header}>
-            <Image
-              source={require('../../assets/images/appLogo.png')}
-              style={styles.appLogo}
-            />
-            <Text style={styles.logoName}>NutriSense</Text>
-          </View>
-
-          <View style={styles.contentWrapper}>
-            {/* Content Section */}
-            <View style={styles.content}>
-              <Text>Welcome! Let's log you in</Text>
-
-              {/* Input Fields */}
-              <TextInput
-                style={styles.input}
-                onChangeText={setEmail}
-                value={email}
-                placeholder="Enter email"
-                keyboardType="email-address"
-                autoCapitalize="none"
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Wrap the content in a View with styles.container */}
+          <View style={styles.container}>
+            {/* Header Section */}
+            <View style={styles.header}>
+              <Image
+                source={require('@/assets/images/appLogo.png')}
+                style={styles.appLogo}
               />
-              {/* Password Input with Toggle Visibility */}
-              <View style={styles.inputContainer}>
+              <Text style={styles.logoName}>NutriSense</Text>
+            </View>
+
+            <View style={styles.contentWrapper}>
+              {/* Content Section */}
+              <View style={styles.content}>
+                <Text>Welcome! Let&apos;s log you in</Text>
+
+                {/* Input Fields */}
                 <TextInput
                   style={styles.input}
-                  onChangeText={setPassword}
-                  value={password}
-                  placeholder="Password"
-                  secureTextEntry={!isPasswordVisible}
+                  onChangeText={setEmail}
+                  value={email}
+                  placeholder="Enter email"
+                  keyboardType="email-address"
                   autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                >
-                  <Ionicons
-                    name={isPasswordVisible ? 'eye-off' : 'eye'}
-                    size={24}
-                    color="gray"
+                {/* Password Input with Toggle Visibility */}
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    onChangeText={setPassword}
+                    value={password}
+                    placeholder="Password"
+                    secureTextEntry={!isPasswordVisible}
+                    autoCapitalize="none"
                   />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  >
+                    <Ionicons
+                      name={isPasswordVisible ? 'eye-off' : 'eye'}
+                      size={24}
+                      color="gray"
+                    />
+                  </TouchableOpacity>
+                </View>
+                <Text
+                  style={styles.forgotPassword}
+                  onPress={handleForgotPassword}
+                >
+                  Forgot Password?
+                </Text>
+              </View>
+
+              {/* Button Section */}
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={[styles.button, loading && styles.buttonDisabled]}
+                  onPress={handleLogin}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                        Logging In...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.buttonText}>Log In</Text>
+                  )}
                 </TouchableOpacity>
               </View>
-              <Text
-                style={styles.forgotPassword}
-                onPress={handleForgotPassword}
-              >
-                Forgot Password?
-              </Text>
-            </View>
 
-            {/* Button Section */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleLogin}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                {loading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#fff" />
-                    <Text style={[styles.buttonText, { marginLeft: 8 }]}>
-                      Logging In...
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.buttonText}>Log In</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* OR Divider */}
-            {/* <View style={styles.orContainer}>
+              {/* OR Divider */}
+              {/* <View style={styles.orContainer}>
               <View style={styles.line} />
               <Text style={styles.orText}>OR</Text>
               <View style={styles.line} />
             </View> */}
 
-            {/* Continue with Google Button */}
-            {/* <TouchableOpacity
+              {/* Continue with Google Button */}
+              {/* <TouchableOpacity
               style={styles.googleButton}
               onPress={() => console.log('Google Log In')}
               activeOpacity={0.8}
@@ -191,18 +198,19 @@ const Login = () => {
               <Text style={styles.googleButtonText}>Continue with Google</Text>
             </TouchableOpacity> */}
 
-            <View style={styles.signupContainer}>
-              <Text>Don't Have An Account?</Text>
-              <Text
-                style={styles.signupLine}
-                onPress={() => router.push('/Signup')}
-              >
-                Sign Up
-              </Text>
+              <View style={styles.signupContainer}>
+                <Text>Don&apos;t Have An Account?</Text>
+                <Text
+                  style={styles.signupLine}
+                  onPress={() => router.push('/Signup')}
+                >
+                  Sign Up
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -324,7 +332,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signupContainer: {
-    marginTop: 15,
+    marginTop: 30,
     alignItems: 'center',
   },
   signupLine: {

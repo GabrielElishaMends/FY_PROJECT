@@ -1,19 +1,16 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 import colors from '../config/colors';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 // import TabBarBackground from '@/components/ui/TabBarBackground';
 // import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+// import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       initialRouteName="dash_board"
@@ -29,9 +26,26 @@ export default function TabLayout() {
             ios: {
               backgroundColor: colors.secondary,
               position: 'absolute',
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: -4,
+              },
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              borderTopWidth: 0,
             },
             android: {
               backgroundColor: colors.secondary,
+              elevation: 16,
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: -4,
+              },
+              shadowOpacity: 0.2,
+              shadowRadius: 16,
+              borderTopWidth: 0,
             },
           }),
           height: 60,
@@ -79,6 +93,19 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="ramen-dining" size={28} color={color} />
           ),
+        }}
+      />
+      {/* Hide the old index and explore tabs */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          href: null, // This hides the tab
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          href: null, // This hides the tab
         }}
       />
     </Tabs>

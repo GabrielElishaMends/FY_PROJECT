@@ -1,17 +1,18 @@
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
-  View,
-  Text,
-  SafeAreaView,
-  StyleSheet,
-  TouchableOpacity,
   Image,
   Platform,
+  StatusBar as RNStatusBar,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
-import { useRouter } from 'expo-router';
+
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import colors from '../config/colors';
 
 const SignLog = () => {
@@ -24,13 +25,13 @@ const SignLog = () => {
         <View style={styles.container}>
           <View style={styles.header}>
             <Image
-              source={require('../../assets/images/appLogo.png')}
+              source={require('@/assets/images/appLogo.png')}
               style={styles.appLogo}
             />
             <Text style={styles.logoName}>NutriSense</Text>
           </View>
           <View style={styles.contentWrapper}>
-            <Text style={styles.subtitle}>Let's Get Started!</Text>
+            <Text style={styles.subtitle}>Let&apos;s Get Started!</Text>
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.button}

@@ -1,16 +1,16 @@
+import axios from 'axios';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import axios from 'axios';
-import { BackendLink } from '@/components/Default';
+import { BackendLink } from '../../components/Default';
 import NoHistoryScreen from './NoHistoryScreen';
 
 // Basic history item type that matches what's saved in Firebase
@@ -28,9 +28,9 @@ type HistoryItemType = {
   digestionTime?: string;
   timeToEat?: string;
   additionalDigestionNotes?: string;
-  benefits?: Array<{ title: string; info: string }>;
-  cautions?: Array<{ title: string; info: string }>;
-  nutrientBreakdown?: Array<{
+  benefits?: { title: string; info: string }[];
+  cautions?: { title: string; info: string }[];
+  nutrientBreakdown?: {
     nutrient?: string;
     label?: string;
     info?: string;
@@ -38,7 +38,7 @@ type HistoryItemType = {
     percentDailyValue?: number;
     width?: string;
     color?: string;
-  }>;
+  }[];
   detectionMethod?: 'search' | 'image';
   confidence?: number | null;
 };

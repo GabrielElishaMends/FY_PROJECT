@@ -1,35 +1,28 @@
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar as RNStatusBar,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
   TouchableOpacity,
-  Image,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+
 // import { signInWithEmailAndPassword } from 'firebase/auth';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { uploadImage } from '../utils/uploadImage';
-import { Feather } from '@expo/vector-icons';
-import { FirebaseError } from 'firebase/app';
-import { auth, db } from '../../firebaseConfig';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
-// import GoogleIcon from '../../assets/images/googleIcon';
-import colors from '../config/colors';
 import { router } from 'expo-router';
-import { setDoc, doc } from 'firebase/firestore';
+import colors from '../config/colors';
 
 const Signup = () => {
-  const navigation = useNavigation();
   const [image, setImage] = React.useState<string | null>(null);
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
@@ -41,7 +34,7 @@ const Signup = () => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
     useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   // Function to Pick Image
   const pickImage = async () => {
@@ -85,10 +78,6 @@ const Signup = () => {
     });
   };
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
-
   const validatePassword = (password: string) => {
     const minLength = 8;
     const hasUpperCase = /[A-Z]/.test(password);
@@ -106,178 +95,190 @@ const Signup = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="dark" backgroundColor="#fff" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={styles.container}>
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View style={styles.headerTab}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          nestedScrollEnabled={true}
+          scrollEnabled={true}
+        >
+          <View style={styles.container}>
+            {/* Header Section */}
+            <View style={styles.header}>
+              <View style={styles.headerTab}>
+                <TouchableOpacity
+                  style={styles.backbutton}
+                  onPress={() => router.back()}
+                >
+                  <Feather name="arrow-left" size={30} />
+                </TouchableOpacity>
+                <Text style={styles.headerText}>Create an account</Text>
+              </View>
+
+              {/* Profile Picture with Upload Option */}
               <TouchableOpacity
-                style={styles.backbutton}
-                onPress={() => router.back()}
+                style={styles.imageContainer}
+                onPress={pickImage}
               >
-                <Feather name="arrow-left" size={30} />
+                {image ? (
+                  <Image source={{ uri: image }} style={styles.appLogo} />
+                ) : (
+                  <View
+                    style={[
+                      styles.appLogo,
+                      {
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor: '#eee',
+                      },
+                    ]}
+                  >
+                    <Feather name="user" size={48} color="#bbb" />
+                  </View>
+                )}
+                <View style={styles.plusIcon}>
+                  <Ionicons name="add-circle" size={20} color="white" />
+                </View>
               </TouchableOpacity>
-              <Text style={styles.headerText}>Create an account</Text>
+
+              <Text style={styles.logoName}>Add a photo</Text>
             </View>
 
-            {/* Profile Picture with Upload Option */}
-            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-              {image ? (
-                <Image source={{ uri: image }} style={styles.appLogo} />
-              ) : (
-                <View
-                  style={[
-                    styles.appLogo,
-                    {
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      backgroundColor: '#eee',
-                    },
-                  ]}
-                >
-                  <Feather name="user" size={48} color="#bbb" />
-                </View>
-              )}
-              <View style={styles.plusIcon}>
-                <Ionicons name="add-circle" size={20} color="white" />
-              </View>
-            </TouchableOpacity>
-
-            <Text style={styles.logoName}>Add a photo</Text>
-          </View>
-
-          <View style={styles.contentWrapper}>
-            {/* Content Section */}
-            <View style={styles.content}>
-              {/* Input Fields */}
-              <TextInput
-                style={styles.input}
-                onChangeText={setFirstName}
-                value={firstName}
-                placeholder="First Name"
-              />
-              <TextInput
-                style={styles.input}
-                onChangeText={setLastName}
-                value={lastName}
-                placeholder="Last Name"
-              />
-              <TextInput
-                style={styles.input}
-                onChangeText={setEmail}
-                value={email}
-                placeholder="Enter email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-              {/* Password Input with Toggle Visibility */}
-              <View style={styles.inputContainer}>
+            <View style={styles.contentWrapper}>
+              {/* Content Section */}
+              <View style={styles.content}>
+                {/* Input Fields */}
                 <TextInput
                   style={styles.input}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setPasswordError(
-                      validatePassword(text)
-                        ? ''
-                        : 'Password must be 8+ chars, include upper, lower, number, special char.'
-                    );
-                  }}
-                  value={password}
-                  placeholder="Password"
-                  secureTextEntry={!isPasswordVisible}
+                  onChangeText={setFirstName}
+                  value={firstName}
+                  placeholder="First Name"
+                />
+                <TextInput
+                  style={styles.input}
+                  onChangeText={setLastName}
+                  value={lastName}
+                  placeholder="Last Name"
+                />
+                <TextInput
+                  style={styles.input}
+                  onChangeText={setEmail}
+                  value={email}
+                  placeholder="Enter email"
+                  keyboardType="email-address"
                   autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                >
-                  <Ionicons
-                    name={isPasswordVisible ? 'eye-off' : 'eye'}
-                    size={24}
-                    color="gray"
+                {/* Password Input with Toggle Visibility */}
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setPasswordError(
+                        validatePassword(text)
+                          ? ''
+                          : 'Password must be 8+ chars, include upper, lower, number, special char.'
+                      );
+                    }}
+                    value={password}
+                    placeholder="Password"
+                    secureTextEntry={!isPasswordVisible}
+                    autoCapitalize="none"
                   />
-                </TouchableOpacity>
-              </View>
-              {passwordError ? (
-                <Text style={{ color: 'red', marginBottom: 8 }}>
-                  {passwordError}
-                </Text>
-              ) : null}
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  >
+                    <Ionicons
+                      name={isPasswordVisible ? 'eye-off' : 'eye'}
+                      size={24}
+                      color="gray"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? (
+                  <Text style={{ color: 'red', marginBottom: 8 }}>
+                    {passwordError}
+                  </Text>
+                ) : null}
 
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  onChangeText={(text) => {
-                    setConfirmPassword(text);
-                    setConfirmPasswordError(
-                      text === password ? '' : 'Passwords do not match.'
-                    );
-                  }}
-                  value={confirmPassword}
-                  placeholder="Confirm Password"
-                  secureTextEntry={!isConfirmPasswordVisible}
-                  autoCapitalize="none"
-                />
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      setConfirmPasswordError(
+                        text === password ? '' : 'Passwords do not match.'
+                      );
+                    }}
+                    value={confirmPassword}
+                    placeholder="Confirm Password"
+                    secureTextEntry={!isConfirmPasswordVisible}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() =>
+                      setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
+                    }
+                  >
+                    <Ionicons
+                      name={isConfirmPasswordVisible ? 'eye-off' : 'eye'}
+                      size={24}
+                      color="gray"
+                    />
+                  </TouchableOpacity>
+                </View>
+                {confirmPasswordError ? (
+                  <Text style={{ color: 'red', marginBottom: 8 }}>
+                    {confirmPasswordError}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Button Section */}
+              <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() =>
-                    setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
+                  style={[
+                    styles.button,
+                    (loading ||
+                      !validatePassword(password) ||
+                      password !== confirmPassword) &&
+                      styles.buttonDisabled,
+                  ]}
+                  onPress={handleSignup}
+                  activeOpacity={0.9}
+                  disabled={
+                    loading ||
+                    !validatePassword(password) ||
+                    password !== confirmPassword
                   }
                 >
-                  <Ionicons
-                    name={isConfirmPasswordVisible ? 'eye-off' : 'eye'}
-                    size={24}
-                    color="gray"
-                  />
+                  {loading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color="#ffffff" />
+                      <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                        Please wait...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.buttonText}>
+                      Continue to Health Setup
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
-              {confirmPasswordError ? (
-                <Text style={{ color: 'red', marginBottom: 8 }}>
-                  {confirmPasswordError}
-                </Text>
-              ) : null}
-            </View>
-
-            {/* Button Section */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  (loading ||
-                    !validatePassword(password) ||
-                    password !== confirmPassword) &&
-                    styles.buttonDisabled,
-                ]}
-                onPress={handleSignup}
-                activeOpacity={0.9}
-                disabled={
-                  loading ||
-                  !validatePassword(password) ||
-                  password !== confirmPassword
-                }
-              >
-                {loading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#ffffff" />
-                    <Text style={[styles.buttonText, { marginLeft: 8 }]}>
-                      Please wait...
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.buttonText}>
-                    Continue to Health Setup
-                  </Text>
-                )}
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -313,10 +314,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   container: {
-    flex: 1,
     paddingLeft: 30,
     paddingRight: 30,
     alignItems: 'center',
+    minHeight: '100%',
   },
   content: {
     alignItems: 'center',
@@ -425,7 +426,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    paddingBottom: 30,
   },
   loadingContainer: {
     flexDirection: 'row',

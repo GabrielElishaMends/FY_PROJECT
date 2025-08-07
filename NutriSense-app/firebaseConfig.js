@@ -1,24 +1,41 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+import {
+  initializeAuth,
+  getReactNativePersistence,
+  getAuth,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyApn0nASMqIP7jErDRt4CtGV6uLcyazSeQ',
-  authDomain: 'paid-internship-with-firebase.firebaseapp.com',
-  projectId: 'paid-internship-with-firebase',
-  storageBucket: 'paid-internship-with-firebase.appspot.com',
-  messagingSenderId: '832187298033',
-  appId: '1:832187298033:web:1b84bfbf61b5ec2f167950',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Get Auth instance
-const auth = getAuth(app);
+/** @type {import('firebase/auth').Auth} */
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+} catch (error) {
+  // If already initialized, use getAuth instead
+  if (error.code === 'auth/already-initialized') {
+    auth = getAuth(app);
+  } else {
+    throw error;
+  }
+}
 
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-export { auth, storage, db };
+export { auth, db, storage };

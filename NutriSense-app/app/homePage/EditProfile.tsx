@@ -1,37 +1,41 @@
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import { StatusBar } from 'expo-status-bar';
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+  updateProfile,
+} from 'firebase/auth';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  SafeAreaView,
-  Platform,
-  Image,
   ActivityIndicator,
-  ScrollView,
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
+  Platform,
+  StatusBar as RNStatusBar,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
 import { auth, db } from '../../firebaseConfig';
-import { updateProfile, updatePassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { useNavigation } from '@react-navigation/native';
 import colors from '../config/colors';
-import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '../utils/uploadImage';
-import { Feather, Ionicons } from '@expo/vector-icons';
 import {
   UserHealthInfo,
   calculateDailyCalories,
   calculateMacronutrients,
   getHeightSuggestions,
   getWeightSuggestions,
-} from '../utils/calculateCalories';
-import { reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+} from '../../utils/calculateCalories';
+import { uploadImage } from '../../utils/uploadImage';
 
 const EditProfile = () => {
   const navigation = useNavigation();
@@ -234,7 +238,7 @@ const EditProfile = () => {
         const uri = result.assets[0].uri;
         const url = await uploadImage(uri, user.uid);
         setProfileImage(url);
-      } catch (e) {
+      } catch {
         Alert.alert('Error', 'Could not upload image.');
       }
       setUploading(false);
@@ -383,7 +387,7 @@ const EditProfile = () => {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="light" backgroundColor={colors.tertiary} />
+      <StatusBar style="light" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

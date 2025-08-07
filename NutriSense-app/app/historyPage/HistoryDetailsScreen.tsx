@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import {
-  ScrollView,
-  SafeAreaView,
-  StyleSheet,
-  Platform,
-  StatusBar,
-  TouchableOpacity,
-  Text,
-  View,
-  ActivityIndicator,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import { BackendLink } from '@/components/Default';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BackendLink } from '../../components/Default';
+import colors from '../config/colors';
 import HomeInsights from '../homePage/HomeInsights';
 import HistoryPageStyles from '../styles/HistoryPageStyles';
-import colors from '../config/colors';
 
 export default function HistoryDetailsScreen() {
   const params = useLocalSearchParams();

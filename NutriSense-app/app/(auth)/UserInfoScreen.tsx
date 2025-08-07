@@ -1,32 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  Modal,
-  ActivityIndicator,
-} from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import colors from '../config/colors';
-import { auth, db } from '../../firebaseConfig';
+import { StatusBar } from 'expo-status-bar';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
-import { uploadImage } from '../utils/uploadImage';
+import { doc, setDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { auth, db } from '../../firebaseConfig';
+import colors from '../config/colors';
 import {
   UserHealthInfo,
   calculateDailyCalories,
   calculateMacronutrients,
   getHeightSuggestions,
   getWeightSuggestions,
-} from '../utils/calculateCalories';
+} from '../../utils/calculateCalories';
+import { uploadImage } from '../../utils/uploadImage';
 
 const UserInfoScreen = () => {
   // Get signup data from navigation params
@@ -376,256 +375,265 @@ const UserInfoScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Feather name="arrow-left" size={24} color={colors.tertiary} />
-            </TouchableOpacity>
-            <Text style={styles.headerText}>Health Information</Text>
-          </View>
+    <View style={styles.mainContainer}>
+      <StatusBar style="dark" backgroundColor="#fff" translucent={false} />
+      <SafeAreaView style={styles.safeContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <Feather name="arrow-left" size={24} color={colors.tertiary} />
+              </TouchableOpacity>
+              <Text style={styles.headerText}>Health Information</Text>
+            </View>
 
-          <Text style={styles.subtitle}>
-            {isFromSignup
-              ? 'Complete your account setup by providing health information'
-              : 'Help us calculate your daily nutrition needs'}
-          </Text>
-
-          {/* Required Fields Note */}
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>
-              <Text style={styles.required}>*</Text> indicates required fields
+            <Text style={styles.subtitle}>
+              {isFromSignup
+                ? 'Complete your account setup by providing health information'
+                : 'Help us calculate your daily nutrition needs'}
             </Text>
-          </View>
 
-          {/* Form Fields */}
-          <View style={styles.form}>
-            {/* Age */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Age <Text style={styles.required}>*</Text>
+            {/* Required Fields Note */}
+            <View style={styles.noteContainer}>
+              <Text style={styles.noteText}>
+                <Text style={styles.required}>*</Text> indicates required fields
               </Text>
-              <TextInput
-                style={styles.input}
-                value={age}
-                onChangeText={setAge}
-                placeholder="Enter your age"
-                keyboardType="numeric"
-                maxLength={3}
-              />
             </View>
 
-            {/* Gender */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Gender <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.genderContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.genderButton,
-                    gender === 'male' && styles.genderButtonActive,
-                  ]}
-                  onPress={() => setGender('male')}
-                >
-                  <Ionicons
-                    name="person"
-                    size={20}
-                    color={gender === 'male' ? '#fff' : colors.tertiary}
-                  />
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      gender === 'male' && styles.genderButtonTextActive,
-                    ]}
-                  >
-                    Male
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.genderButton,
-                    gender === 'female' && styles.genderButtonActive,
-                  ]}
-                  onPress={() => setGender('female')}
-                >
-                  <Ionicons
-                    name="person"
-                    size={20}
-                    color={gender === 'female' ? '#fff' : colors.tertiary}
-                  />
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      gender === 'female' && styles.genderButtonTextActive,
-                    ]}
-                  >
-                    Female
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Height */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Height (cm) <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.inputWithButton}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  value={height}
-                  onChangeText={setHeight}
-                  placeholder="Enter height in cm"
-                  keyboardType="numeric"
-                />
-                <TouchableOpacity
-                  style={styles.suggestButton}
-                  onPress={() => {
-                    if (!age.trim()) {
-                      Alert.alert(
-                        'Age Required',
-                        'Please enter your age first to get height suggestions.'
-                      );
-                      return;
-                    }
-                    setShowHeightModal(true);
-                  }}
-                  disabled={!age}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.suggestButtonText}>?</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Weight */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Weight (kg) <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.inputWithButton}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  value={weight}
-                  onChangeText={setWeight}
-                  placeholder="Enter weight in kg"
-                  keyboardType="numeric"
-                />
-                <TouchableOpacity
-                  style={styles.suggestButton}
-                  onPress={() => {
-                    if (!age.trim()) {
-                      Alert.alert(
-                        'Age Required',
-                        'Please enter your age first to get weight suggestions.'
-                      );
-                      return;
-                    }
-                    setShowWeightModal(true);
-                  }}
-                  disabled={!age}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.suggestButtonText}>?</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Activity Level */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>
-                Activity Level <Text style={styles.required}>*</Text>
-              </Text>
-              {activityOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.key}
-                  style={[
-                    styles.activityOption,
-                    activityLevel === option.key && styles.activityOptionActive,
-                  ]}
-                  onPress={() => setActivityLevel(option.key as any)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.activityContent}>
-                    <Text
-                      style={[
-                        styles.activityLabel,
-                        activityLevel === option.key &&
-                          styles.activityLabelActive,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.activityDescription,
-                        activityLevel === option.key &&
-                          styles.activityDescriptionActive,
-                      ]}
-                    >
-                      {option.description}
-                    </Text>
-                  </View>
-                  {activityLevel === option.key && (
-                    <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              loading && styles.submitButtonDisabled,
-            ]}
-            onPress={handleSubmit}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={[styles.submitButtonText, { marginLeft: 8 }]}>
-                  {isFromSignup ? 'Creating Account...' : 'Updating...'}
+            {/* Form Fields */}
+            <View style={styles.form}>
+              {/* Age */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Age <Text style={styles.required}>*</Text>
                 </Text>
+                <TextInput
+                  style={styles.input}
+                  value={age}
+                  onChangeText={setAge}
+                  placeholder="Enter your age"
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
               </View>
-            ) : (
-              <Text style={styles.submitButtonText}>
-                {isFromSignup
-                  ? 'Create Account & Calculate Nutrition'
-                  : 'Calculate My Nutrition Needs'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
 
-      {/* Modals */}
-      {renderHeightSuggestions()}
-      {renderWeightSuggestions()}
-    </SafeAreaView>
+              {/* Gender */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Gender <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.genderContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      gender === 'male' && styles.genderButtonActive,
+                    ]}
+                    onPress={() => setGender('male')}
+                  >
+                    <Ionicons
+                      name="person"
+                      size={20}
+                      color={gender === 'male' ? '#fff' : colors.tertiary}
+                    />
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        gender === 'male' && styles.genderButtonTextActive,
+                      ]}
+                    >
+                      Male
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.genderButton,
+                      gender === 'female' && styles.genderButtonActive,
+                    ]}
+                    onPress={() => setGender('female')}
+                  >
+                    <Ionicons
+                      name="person"
+                      size={20}
+                      color={gender === 'female' ? '#fff' : colors.tertiary}
+                    />
+                    <Text
+                      style={[
+                        styles.genderButtonText,
+                        gender === 'female' && styles.genderButtonTextActive,
+                      ]}
+                    >
+                      Female
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Height */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Height (cm) <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.inputWithButton}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={height}
+                    onChangeText={setHeight}
+                    placeholder="Enter height in cm"
+                    keyboardType="numeric"
+                  />
+                  <TouchableOpacity
+                    style={styles.suggestButton}
+                    onPress={() => {
+                      if (!age.trim()) {
+                        Alert.alert(
+                          'Age Required',
+                          'Please enter your age first to get height suggestions.'
+                        );
+                        return;
+                      }
+                      setShowHeightModal(true);
+                    }}
+                    disabled={!age}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.suggestButtonText}>?</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Weight */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Weight (kg) <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.inputWithButton}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={weight}
+                    onChangeText={setWeight}
+                    placeholder="Enter weight in kg"
+                    keyboardType="numeric"
+                  />
+                  <TouchableOpacity
+                    style={styles.suggestButton}
+                    onPress={() => {
+                      if (!age.trim()) {
+                        Alert.alert(
+                          'Age Required',
+                          'Please enter your age first to get weight suggestions.'
+                        );
+                        return;
+                      }
+                      setShowWeightModal(true);
+                    }}
+                    disabled={!age}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.suggestButtonText}>?</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Activity Level */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  Activity Level <Text style={styles.required}>*</Text>
+                </Text>
+                {activityOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.activityOption,
+                      activityLevel === option.key &&
+                        styles.activityOptionActive,
+                    ]}
+                    onPress={() => setActivityLevel(option.key as any)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.activityContent}>
+                      <Text
+                        style={[
+                          styles.activityLabel,
+                          activityLevel === option.key &&
+                            styles.activityLabelActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.activityDescription,
+                          activityLevel === option.key &&
+                            styles.activityDescriptionActive,
+                        ]}
+                      >
+                        {option.description}
+                      </Text>
+                    </View>
+                    {activityLevel === option.key && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={24}
+                        color="#fff"
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                loading && styles.submitButtonDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={[styles.submitButtonText, { marginLeft: 8 }]}>
+                    {isFromSignup ? 'Creating Account...' : 'Updating...'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.submitButtonText}>
+                  {isFromSignup
+                    ? 'Create Account & Calculate Nutrition'
+                    : 'Calculate My Nutrition Needs'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* Modals */}
+        {renderHeightSuggestions()}
+        {renderWeightSuggestions()}
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeContainer: {
+  mainContainer: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  safeContainer: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,

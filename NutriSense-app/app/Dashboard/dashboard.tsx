@@ -9,9 +9,10 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  StatusBar as RNStatusBar,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { auth } from '../../firebaseConfig';
@@ -25,8 +26,8 @@ import {
   FoodHistoryEntry,
   compareWithDailyNeeds,
   compareWithWeeklyNeeds,
-} from '../utils/firebaseFoodUtils';
-import { calculateWeeklyNeeds } from '../utils/calculateCalories';
+} from '../../utils/firebaseFoodUtils';
+import { calculateWeeklyNeeds } from '../../utils/calculateCalories';
 import colors from '../config/colors';
 import NutriHeader from '../homePage/NutriHeader';
 
@@ -132,6 +133,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
 };
 
 const DashboardScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [foodHistory, setFoodHistory] = useState<FoodHistoryEntry[]>([]);
   const [viewType, setViewType] = useState<'daily' | 'weekly'>('daily');
@@ -242,196 +244,213 @@ const DashboardScreen: React.FC = () => {
   }, [userProfile, viewType]);
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="dark" backgroundColor={colors.secondary} />
-      <NutriHeader profileImage={profileImage} />
+    <View style={{ flex: 1 }}>
+      {/* Status Bar Background */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.secondary,
+          zIndex: 1000,
+        }}
+      />
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeContainer}>
+        <NutriHeader profileImage={profileImage} />
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerSection}>
-          <Text style={styles.title}>
-            Nutri<Text style={styles.titleAccent}>Sense</Text> Dashboard
-          </Text>
-          <Text style={styles.subtitle}>
-            Track your {viewType} nutrition progress
-          </Text>
-        </View>
-
-        {/* View Toggle */}
-        <View style={styles.toggleContainer}>
-          <View style={styles.toggleWrapper}>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                viewType === 'daily' && styles.toggleButtonActive,
-              ]}
-              onPress={() => setViewType('daily')}
-            >
-              <Ionicons
-                name="calendar"
-                size={16}
-                color={viewType === 'daily' ? '#fff' : colors.tertiary}
-              />
-              <Text
-                style={[
-                  styles.toggleText,
-                  viewType === 'daily' && styles.toggleTextActive,
-                ]}
-              >
-                Daily
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                viewType === 'weekly' && styles.toggleButtonActive,
-              ]}
-              onPress={() => setViewType('weekly')}
-            >
-              <Ionicons
-                name="stats-chart"
-                size={16}
-                color={viewType === 'weekly' ? '#fff' : colors.tertiary}
-              />
-              <Text
-                style={[
-                  styles.toggleText,
-                  viewType === 'weekly' && styles.toggleTextActive,
-                ]}
-              >
-                Weekly
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Nutrition Progress Cards */}
-        <View style={styles.progressGrid}>
-          <View style={styles.progressCard}>
-            <CircularProgress
-              value={nutritionData.calories}
-              max={targets.calories}
-              label="Calories"
-              unit="kcal"
-              color="#e91e63"
-              isLoading={dataLoading}
-            />
-          </View>
-
-          <View style={styles.progressCard}>
-            <CircularProgress
-              value={nutritionData.carbs}
-              max={targets.carbs}
-              label="Carbs"
-              unit="g"
-              color="#ff9800"
-              isLoading={dataLoading}
-            />
-          </View>
-
-          <View style={styles.progressCard}>
-            <CircularProgress
-              value={nutritionData.protein}
-              max={targets.protein}
-              label="Protein"
-              unit="g"
-              color="#4caf50"
-              isLoading={dataLoading}
-            />
-          </View>
-
-          <View style={styles.progressCard}>
-            <CircularProgress
-              value={nutritionData.fat}
-              max={targets.fat}
-              label="Fat"
-              unit="g"
-              color="#2196f3"
-              isLoading={dataLoading}
-            />
-          </View>
-        </View>
-
-        {/* Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <Ionicons name="stats-chart" size={20} color={colors.tertiary} />
-            <Text style={styles.summaryTitle}>
-              {viewType === 'daily' ? "Today's" : "This Week's"} Summary
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.headerSection}>
+            <Text style={styles.title}>
+              Nutri<Text style={styles.titleAccent}>Sense</Text> Dashboard
+            </Text>
+            <Text style={styles.subtitle}>
+              Track your {viewType} nutrition progress
             </Text>
           </View>
 
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              {dataLoading ? (
-                <ActivityIndicator size="small" color={colors.tertiary} />
-              ) : (
-                <Text style={styles.summaryValue}>
-                  {Math.round(nutritionData.calories)}
+          {/* View Toggle */}
+          <View style={styles.toggleContainer}>
+            <View style={styles.toggleWrapper}>
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  viewType === 'daily' && styles.toggleButtonActive,
+                ]}
+                onPress={() => setViewType('daily')}
+              >
+                <Ionicons
+                  name="calendar"
+                  size={16}
+                  color={viewType === 'daily' ? '#fff' : colors.tertiary}
+                />
+                <Text
+                  style={[
+                    styles.toggleText,
+                    viewType === 'daily' && styles.toggleTextActive,
+                  ]}
+                >
+                  Daily
                 </Text>
-              )}
-              <Text style={styles.summaryLabel}>Calories consumed</Text>
-            </View>
+              </TouchableOpacity>
 
-            <View style={styles.summaryItem}>
-              {dataLoading ? (
-                <ActivityIndicator size="small" color={colors.tertiary} />
-              ) : (
-                <Text style={styles.summaryValue}>
-                  {Math.round(nutritionData.carbs)}g
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  viewType === 'weekly' && styles.toggleButtonActive,
+                ]}
+                onPress={() => setViewType('weekly')}
+              >
+                <Ionicons
+                  name="stats-chart"
+                  size={16}
+                  color={viewType === 'weekly' ? '#fff' : colors.tertiary}
+                />
+                <Text
+                  style={[
+                    styles.toggleText,
+                    viewType === 'weekly' && styles.toggleTextActive,
+                  ]}
+                >
+                  Weekly
                 </Text>
-              )}
-              <Text style={styles.summaryLabel}>Carbohydrates</Text>
-            </View>
-
-            <View style={styles.summaryItem}>
-              {dataLoading ? (
-                <ActivityIndicator size="small" color={colors.tertiary} />
-              ) : (
-                <Text style={styles.summaryValue}>
-                  {Math.round(nutritionData.protein)}g
-                </Text>
-              )}
-              <Text style={styles.summaryLabel}>Protein</Text>
-            </View>
-
-            <View style={styles.summaryItem}>
-              {dataLoading ? (
-                <ActivityIndicator size="small" color={colors.tertiary} />
-              ) : (
-                <Text style={styles.summaryValue}>
-                  {Math.round(nutritionData.fat)}g
-                </Text>
-              )}
-              <Text style={styles.summaryLabel}>Fat</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.summaryFooter}>
-            {dataLoading ? (
-              <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color={colors.tertiary} />
-                <Text style={styles.summaryFooterText}>
-                  Loading your nutrition data...
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.summaryFooterText}>
-                {foodHistory.length === 0
-                  ? 'Start tracking your food to see your nutrition progress!'
-                  : `Based on ${foodHistory.length} tracked food${
-                      foodHistory.length === 1 ? '' : 's'
-                    }`}
+          {/* Nutrition Progress Cards */}
+          <View style={styles.progressGrid}>
+            <View style={styles.progressCard}>
+              <CircularProgress
+                value={nutritionData.calories}
+                max={targets.calories}
+                label="Calories"
+                unit="kcal"
+                color="#e91e63"
+                isLoading={dataLoading}
+              />
+            </View>
+
+            <View style={styles.progressCard}>
+              <CircularProgress
+                value={nutritionData.carbs}
+                max={targets.carbs}
+                label="Carbs"
+                unit="g"
+                color="#ff9800"
+                isLoading={dataLoading}
+              />
+            </View>
+
+            <View style={styles.progressCard}>
+              <CircularProgress
+                value={nutritionData.protein}
+                max={targets.protein}
+                label="Protein"
+                unit="g"
+                color="#4caf50"
+                isLoading={dataLoading}
+              />
+            </View>
+
+            <View style={styles.progressCard}>
+              <CircularProgress
+                value={nutritionData.fat}
+                max={targets.fat}
+                label="Fat"
+                unit="g"
+                color="#2196f3"
+                isLoading={dataLoading}
+              />
+            </View>
+          </View>
+
+          {/* Summary Card */}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <Ionicons name="stats-chart" size={20} color={colors.tertiary} />
+              <Text style={styles.summaryTitle}>
+                {viewType === 'daily' ? "Today's" : "This Week's"} Summary
               </Text>
-            )}
-          </View>
-        </View>
+            </View>
 
-        {/* Additional spacing at bottom */}
-        <View style={{ height: 30 }} />
-      </ScrollView>
-    </SafeAreaView>
+            <View style={styles.summaryGrid}>
+              <View style={styles.summaryItem}>
+                {dataLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
+                  <Text style={styles.summaryValue}>
+                    {Math.round(nutritionData.calories)}
+                  </Text>
+                )}
+                <Text style={styles.summaryLabel}>Calories consumed</Text>
+              </View>
+
+              <View style={styles.summaryItem}>
+                {dataLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
+                  <Text style={styles.summaryValue}>
+                    {Math.round(nutritionData.carbs)}g
+                  </Text>
+                )}
+                <Text style={styles.summaryLabel}>Carbohydrates</Text>
+              </View>
+
+              <View style={styles.summaryItem}>
+                {dataLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
+                  <Text style={styles.summaryValue}>
+                    {Math.round(nutritionData.protein)}g
+                  </Text>
+                )}
+                <Text style={styles.summaryLabel}>Protein</Text>
+              </View>
+
+              <View style={styles.summaryItem}>
+                {dataLoading ? (
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                ) : (
+                  <Text style={styles.summaryValue}>
+                    {Math.round(nutritionData.fat)}g
+                  </Text>
+                )}
+                <Text style={styles.summaryLabel}>Fat</Text>
+              </View>
+            </View>
+
+            <View style={styles.summaryFooter}>
+              {dataLoading ? (
+                <View style={styles.loadingFooter}>
+                  <ActivityIndicator size="small" color={colors.tertiary} />
+                  <Text style={styles.summaryFooterText}>
+                    Loading your nutrition data...
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.summaryFooterText}>
+                  {foodHistory.length === 0
+                    ? 'Start tracking your food to see your nutrition progress!'
+                    : `Based on ${foodHistory.length} tracked food${
+                        foodHistory.length === 1 ? '' : 's'
+                      }`}
+                </Text>
+              )}
+            </View>
+          </View>
+
+          {/* Additional spacing at bottom */}
+          <View style={{ height: 30 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 

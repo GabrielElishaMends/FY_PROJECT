@@ -1,28 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  Image,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { StatusBar as RNStatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GoogleGenAI } from '@google/genai';
-import config from '../config/api';
-import colors from '../config/colors';
-import TypingIndicator from '../components/TypingIndicator';
-import { GHANAIAN_FOODS } from './ghanaian_foods';
-import NutriHeader from '../homePage/NutriHeader';
-import { auth, db } from '../../firebaseConfig';
+import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  FlatList,
+  Image,
+  Keyboard,
+  Platform,
+  StatusBar as RNStatusBar,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { auth, db } from '../../firebaseConfig';
+import TypingIndicator from '../components/TypingIndicator';
+import config from '../config/api';
+import colors from '../config/colors';
+import NutriHeader from '../homePage/NutriHeader';
+import { GHANAIAN_FOODS } from '../../utils/ghanaian_foods';
 
 const BOT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png';
 
@@ -39,6 +40,7 @@ type ChatbotScreenProps = {
 const ChatbotScreen: React.FC<ChatbotScreenProps> = ({
   profileImage: initialProfileImage,
 }) => {
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
@@ -47,6 +49,7 @@ const ChatbotScreen: React.FC<ChatbotScreenProps> = ({
     initialProfileImage || null
   );
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
   // Initialize Google AI with error handling
@@ -78,6 +81,27 @@ const ChatbotScreen: React.FC<ChatbotScreenProps> = ({
       }
     });
     return unsubscribe;
+  }, []);
+
+  // Add keyboard listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+      keyboardDidShowListener.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -204,6 +228,7 @@ const ChatbotScreen: React.FC<ChatbotScreenProps> = ({
 
       setMessages((prev) => [...prev, userMessage, errorMessage]);
       setInputText('');
+      setInputHeight(20); // Reset input height
       return;
     }
 
@@ -227,6 +252,7 @@ Please ask about nutrition, health benefits, cooking methods, or any other food-
 
       setMessages((prev) => [...prev, userMessage, restrictionMessage]);
       setInputText('');
+      setInputHeight(40); // Reset input height
       return;
     }
 
@@ -238,6 +264,7 @@ Please ask about nutrition, health benefits, cooking methods, or any other food-
 
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
+    setInputHeight(40); // Reset input height
     setIsLoading(true);
 
     try {
@@ -357,81 +384,104 @@ Please respond appropriately:`;
   );
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="dark" backgroundColor={colors.secondary} />
-      <NutriHeader profileImage={profileImage} />{' '}
-      {/* Now using the state variable */}
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.chatContainer}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }
-        />
+    <View style={{ flex: 1 }}>
+      {/* Status Bar Background */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.secondary,
+          zIndex: 1000,
+        }}
+      />
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeContainer}>
+        <NutriHeader profileImage={profileImage} />
+        <View style={styles.container}>
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.chatContainer}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+          />
 
-        {isLoading && (
-          <View style={styles.typingContainer}>
-            <Image
-              source={{ uri: BOT_AVATAR }}
-              style={styles.typingAvatar}
-              resizeMode="cover"
-            />
-            <View style={[styles.messageBubble, styles.typingBubble]}>
-              <TypingIndicator />
+          {isLoading && (
+            <View style={styles.typingContainer}>
+              <Image
+                source={{ uri: BOT_AVATAR }}
+                style={styles.typingAvatar}
+                resizeMode="cover"
+              />
+              <View style={[styles.messageBubble, styles.typingBubble]}>
+                <TypingIndicator />
+              </View>
+            </View>
+          )}
+
+          <View
+            style={[
+              styles.inputContainer,
+              keyboardHeight > 0 && {
+                marginBottom: keyboardHeight - (Platform.OS === 'ios' ? 35 : 0),
+              },
+            ]}
+          >
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    height: Math.min(100, Math.max(40, inputHeight)),
+                    maxHeight: 100,
+                  },
+                ]}
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Ask about nutrition..."
+                placeholderTextColor="#999"
+                editable={!isLoading}
+                onSubmitEditing={sendMessage}
+                multiline={true}
+                returnKeyType="send"
+                blurOnSubmit={false}
+                onContentSizeChange={(e) =>
+                  setInputHeight(e.nativeEvent.contentSize.height)
+                }
+                onFocus={() => {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
+              />
+              <TouchableOpacity
+                onPress={sendMessage}
+                style={[
+                  styles.sendButton,
+                  {
+                    opacity: isLoading || !inputText.trim() ? 0.5 : 1,
+                    backgroundColor: inputText.trim() ? '#4CAF50' : '#ccc',
+                  },
+                ]}
+                disabled={isLoading || !inputText.trim()}
+              >
+                <Ionicons
+                  name="send"
+                  size={20}
+                  color={inputText.trim() ? '#fff' : '#666'}
+                />
+              </TouchableOpacity>
             </View>
           </View>
-        )}
-
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  height: Math.min(100, Math.max(40, inputHeight)),
-                  maxHeight: 100,
-                },
-              ]}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Ask about nutrition..."
-              placeholderTextColor="#999"
-              editable={!isLoading}
-              onSubmitEditing={sendMessage}
-              multiline={true}
-              onContentSizeChange={(e) =>
-                setInputHeight(e.nativeEvent.contentSize.height)
-              }
-            />
-            <TouchableOpacity
-              onPress={sendMessage}
-              style={[
-                styles.sendButton,
-                {
-                  opacity: isLoading || !inputText.trim() ? 0.5 : 1,
-                  backgroundColor: inputText.trim() ? '#4CAF50' : '#ccc',
-                },
-              ]}
-              disabled={isLoading || !inputText.trim()}
-            >
-              <Ionicons
-                name="send"
-                size={20}
-                color={inputText.trim() ? '#fff' : '#666'}
-              />
-            </TouchableOpacity>
-          </View>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 

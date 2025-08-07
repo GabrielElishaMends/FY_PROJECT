@@ -1,53 +1,51 @@
+import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { StatusBar } from 'expo-status-bar';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   SafeAreaView,
   ScrollView,
-  ActivityIndicator,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useNavigation } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
-import { Feather } from '@expo/vector-icons';
-import HomePageStyles from '../styles/HomePageStyles';
-import colors from '../config/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { Animated, Easing } from 'react-native';
-import NutriHeader from './NutriHeader';
-import HomeInsights from './HomeInsights';
-import {
-  uploadImageAsync,
-  saveFoodHistory,
-  getUserProfile,
-} from '../utils/firebaseFoodUtils';
-import axios from 'axios';
-import { BackendLink } from '@/components/Default';
+import colors from '../config/colors';
+import HomePageStyles from '../styles/HomePageStyles';
+
 import foodImages from '@/assets/foodImages/foodImages';
+import axios from 'axios';
+import { BackendLink } from '../../components/Default';
 import TopOnsModal from '../components/TopOnsModal';
-import { SelectedTopOn, sumTopOnsNutrition } from '../utils/topOnsData';
 import {
-  updateNutrientBreakdownWithTopOns,
+  getUserProfile,
+  saveFoodHistory,
+  uploadImageAsync,
+} from '../../utils/firebaseFoodUtils';
+import {
   PersonalizedDailyValues,
-} from '../utils/nutrientBreakdownUtils';
+  updateNutrientBreakdownWithTopOns,
+} from '../../utils/nutrientBreakdownUtils';
+import { SelectedTopOn, sumTopOnsNutrition } from '../../utils/topOnsData';
+import HomeInsights from './HomeInsights';
+import NutriHeader from './NutriHeader';
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [food, setFood] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [active, setActive] = useState<'camera' | 'search'>('camera');
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [aiResult, setAiResult] = useState<{
-    predicted_class: string;
-    confidence: number;
-  } | null>(null);
   const [searchedFood, setSearchedFood] = useState<any>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -111,7 +109,7 @@ const HomeScreen = () => {
     };
 
     fetchUserProfile();
-  }, [auth.currentUser]);
+  }, []);
 
   const handleTakePicture = async () => {
     if (hasPermission === null) return;
@@ -176,8 +174,6 @@ const HomeScreen = () => {
 
       // Prepare the image for upload
       const formData = new FormData();
-      const responseBlob = await fetch(image);
-      const blob = await responseBlob.blob();
       formData.append('file', {
         uri: image,
         name: `food.${extension || 'jpg'}`,
@@ -195,7 +191,7 @@ const HomeScreen = () => {
         }
       );
 
-      const { predicted_class, confidence } = response.data;
+      const { predicted_class } = response.data;
 
       // Upload image to Firebase Storage
       const imageUri = await uploadImageAsync(image, auth.currentUser.uid);
@@ -261,7 +257,6 @@ const HomeScreen = () => {
       foodDetails.capturedImage = image; // Store the original captured image
       setSearchedFood(foodDetails);
       setIsAnalyzed(true);
-      setAiResult({ predicted_class, confidence });
     } catch (error) {
       console.error('AI analysis failed:', error);
       alert('Failed to analyze image.');
@@ -511,394 +506,419 @@ const HomeScreen = () => {
   };
 
   return (
-    <SafeAreaView style={HomePageStyles.safeContainer}>
-      <StatusBar style="dark" backgroundColor={colors.secondary} />
-      <NutriHeader profileImage={profileImage} />
-      <ScrollView
-        contentContainerStyle={HomePageStyles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={HomePageStyles.container}>
-          <View style={HomePageStyles.content}>
-            {/* SHOW camera/search UI ONLY when not analyzed */}
-            {!isAnalyzed ? (
-              <>
-                <Text style={HomePageStyles.question}>
-                  Analyze your food for detailed nutritional insights
-                </Text>
+    <View style={{ flex: 1 }}>
+      {/* Status Bar Background */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.secondary,
+          zIndex: 1000,
+        }}
+      />
+      <StatusBar style="dark" />
+      <SafeAreaView style={HomePageStyles.safeContainer}>
+        <NutriHeader profileImage={profileImage} />
+        <ScrollView
+          contentContainerStyle={HomePageStyles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={HomePageStyles.container}>
+            <View style={HomePageStyles.content}>
+              {/* SHOW camera/search UI ONLY when not analyzed */}
+              {!isAnalyzed ? (
+                <>
+                  <Text style={HomePageStyles.question}>
+                    Analyze your food for detailed nutritional insights
+                  </Text>
 
-                <View style={HomePageStyles.toggleContainer}>
-                  <TouchableOpacity
-                    onPress={() => setActive('camera')}
-                    style={[
-                      HomePageStyles.toggleButton,
-                      active === 'camera' && HomePageStyles.activeButton,
-                    ]}
-                    activeOpacity={0.8}
-                  >
-                    <Feather
-                      name="camera"
-                      size={16}
-                      color={active === 'camera' ? '#fff' : '#4CAF50'}
-                    />
-                    <Text
-                      style={[
-                        HomePageStyles.toggleText,
-                        active === 'camera' && HomePageStyles.toggleTextActive,
-                      ]}
-                    >
-                      Camera
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => setActive('search')}
-                    style={[
-                      HomePageStyles.toggleButton,
-                      active === 'search' && HomePageStyles.activeButton,
-                    ]}
-                    activeOpacity={0.8}
-                  >
-                    <Feather
-                      name="search"
-                      size={16}
-                      color={active === 'search' ? '#fff' : '#4CAF50'}
-                    />
-                    <Text
-                      style={[
-                        HomePageStyles.toggleText,
-                        active === 'search' && HomePageStyles.toggleTextActive,
-                      ]}
-                    >
-                      Search
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Camera UI */}
-                {active === 'camera' && (
-                  <>
-                    {!image ? (
-                      <View style={HomePageStyles.cameraContainer}>
-                        <View style={HomePageStyles.cameraSection}>
-                          <Feather
-                            name="camera"
-                            size={40}
-                            color="#4CAF50"
-                            style={HomePageStyles.topIcon}
-                          />
-                          <Text style={HomePageStyles.descriptionText}>
-                            Capture your food to analyze its nutritional content
-                            with AI
-                          </Text>
-                        </View>
-
-                        <View style={HomePageStyles.cameraActionContainer}>
-                          <TouchableOpacity
-                            style={HomePageStyles.primaryCameraButton}
-                            onPress={handleTakePicture}
-                            activeOpacity={0.8}
-                          >
-                            <Feather name="camera" size={24} color="#fff" />
-                            <Text style={HomePageStyles.primaryButtonText}>
-                              Take Photo
-                            </Text>
-                          </TouchableOpacity>
-
-                          <View style={HomePageStyles.dividerContainer}>
-                            <View style={HomePageStyles.dividerLine} />
-                            <Text style={HomePageStyles.dividerText}>or</Text>
-                            <View style={HomePageStyles.dividerLine} />
-                          </View>
-
-                          <TouchableOpacity
-                            style={HomePageStyles.secondaryCameraButton}
-                            onPress={handlePickImage}
-                            activeOpacity={0.8}
-                          >
-                            <Feather name="image" size={20} color="#4CAF50" />
-                            <Text style={HomePageStyles.secondaryButtonText}>
-                              Choose from Gallery
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={HomePageStyles.cameraHintContainer}>
-                          <Text style={HomePageStyles.cameraHintTitle}>
-                            Tips for best results:
-                          </Text>
-                          <View style={HomePageStyles.cameraHints}>
-                            <Text style={HomePageStyles.cameraHintText}>
-                              • Good lighting
-                            </Text>
-                            <Text style={HomePageStyles.cameraHintText}>
-                              • Clear view of food
-                            </Text>
-                            <Text style={HomePageStyles.cameraHintText}>
-                              • Close-up shots work best
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={HomePageStyles.imagePreviewContainer}>
-                        <View style={HomePageStyles.imageWrapper}>
-                          <Image
-                            source={{ uri: image }}
-                            style={HomePageStyles.capturedImage}
-                          />
-
-                          {/* 🔄 Scanning effect overlay */}
-                          {isScanning && (
-                            <Animated.View
-                              style={[
-                                HomePageStyles.scanOverlay,
-                                {
-                                  transform: [
-                                    {
-                                      translateY: scanAnim.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [0, 290],
-                                      }),
-                                    },
-                                  ],
-                                },
-                              ]}
-                            />
-                          )}
-
-                          {/* Only show close button when not scanning */}
-                          {!isScanning && (
-                            <TouchableOpacity
-                              style={HomePageStyles.closeButton}
-                              onPress={() => setImage(null)}
-                              activeOpacity={0.7}
-                            >
-                              <Feather name="x" size={24} color="#fff" />
-                            </TouchableOpacity>
-                          )}
-                        </View>
-
-                        <TouchableOpacity
-                          style={[
-                            HomePageStyles.analyzeButton,
-                            isScanning && HomePageStyles.disabledButton,
-                          ]}
-                          onPress={handleAnalyzeImage}
-                          activeOpacity={0.8}
-                          disabled={isScanning}
-                        >
-                          <Text style={HomePageStyles.buttonText}>
-                            {isScanning
-                              ? 'Analyzing...'
-                              : selectedTopOns.length > 0
-                              ? `Analyze with ${selectedTopOns.length} protein${
-                                  selectedTopOns.length > 1 ? 's' : ''
-                                }`
-                              : 'Select Proteins & Analyze'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        {/* Show selected top-ons summary */}
-                        {selectedTopOns.length > 0 && (
-                          <View style={topOnsSummaryStyles.container}>
-                            <Text style={topOnsSummaryStyles.title}>
-                              Selected Proteins:
-                            </Text>
-                            <Text style={topOnsSummaryStyles.items}>
-                              {selectedTopOns
-                                .map(
-                                  (topOn) => `${topOn.quantity}x ${topOn.name}`
-                                )
-                                .join(', ')}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-                  </>
-                )}
-
-                {/* Search UI */}
-                {active === 'search' && (
-                  <View style={HomePageStyles.searchContainer}>
-                    <View style={HomePageStyles.searchSection}>
-                      <Feather
-                        name="search"
-                        size={40}
-                        color="#4CAF50"
-                        style={HomePageStyles.topIcon}
-                      />
-                      <Text style={HomePageStyles.descriptionText}>
-                        Search for your food by name to get detailed nutritional
-                        information
-                      </Text>
-                    </View>
-
-                    <View style={HomePageStyles.inputWrapper}>
-                      <Feather
-                        name="search"
-                        size={20}
-                        color="#999"
-                        style={HomePageStyles.searchIcon}
-                      />
-                      <TextInput
-                        style={HomePageStyles.input}
-                        placeholder="Type food name..."
-                        value={food}
-                        onChangeText={setFood}
-                        placeholderTextColor="#999"
-                        returnKeyType="search"
-                        onSubmitEditing={handleSearch}
-                      />
-                      {food.trim() !== '' && (
-                        <TouchableOpacity
-                          onPress={() => setFood('')}
-                          style={HomePageStyles.clearButton}
-                          activeOpacity={0.7}
-                        >
-                          <Feather name="x" size={18} color="#999" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
+                  <View style={HomePageStyles.toggleContainer}>
                     <TouchableOpacity
-                      onPress={handleSearch}
+                      onPress={() => setActive('camera')}
                       style={[
-                        HomePageStyles.searchButton,
-                        food.trim() === '' &&
-                          HomePageStyles.disabledSearchButton,
+                        HomePageStyles.toggleButton,
+                        active === 'camera' && HomePageStyles.activeButton,
                       ]}
                       activeOpacity={0.8}
-                      disabled={food.trim() === ''}
                     >
-                      <Feather name="search" size={20} color="#fff" />
-                      <Text style={HomePageStyles.searchButtonText}>
-                        {selectedTopOns.length > 0
-                          ? `Search with ${selectedTopOns.length} protein${
-                              selectedTopOns.length > 1 ? 's' : ''
-                            }`
-                          : 'Select Proteins & Search'}
+                      <Feather
+                        name="camera"
+                        size={16}
+                        color={active === 'camera' ? '#fff' : '#4CAF50'}
+                      />
+                      <Text
+                        style={[
+                          HomePageStyles.toggleText,
+                          active === 'camera' &&
+                            HomePageStyles.toggleTextActive,
+                        ]}
+                      >
+                        Camera
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Show selected top-ons summary */}
-                    {selectedTopOns.length > 0 && (
-                      <View style={topOnsSummaryStyles.container}>
-                        <Text style={topOnsSummaryStyles.title}>
-                          Selected Proteins:
-                        </Text>
-                        <Text style={topOnsSummaryStyles.items}>
-                          {selectedTopOns
-                            .map((topOn) => `${topOn.quantity}x ${topOn.name}`)
-                            .join(', ')}
+                    <TouchableOpacity
+                      onPress={() => setActive('search')}
+                      style={[
+                        HomePageStyles.toggleButton,
+                        active === 'search' && HomePageStyles.activeButton,
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      <Feather
+                        name="search"
+                        size={16}
+                        color={active === 'search' ? '#fff' : '#4CAF50'}
+                      />
+                      <Text
+                        style={[
+                          HomePageStyles.toggleText,
+                          active === 'search' &&
+                            HomePageStyles.toggleTextActive,
+                        ]}
+                      >
+                        Search
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Camera UI */}
+                  {active === 'camera' && (
+                    <>
+                      {!image ? (
+                        <View style={HomePageStyles.cameraContainer}>
+                          <View style={HomePageStyles.cameraSection}>
+                            <Feather
+                              name="camera"
+                              size={40}
+                              color="#4CAF50"
+                              style={HomePageStyles.topIcon}
+                            />
+                            <Text style={HomePageStyles.descriptionText}>
+                              Capture your food to analyze its nutritional
+                              content with AI
+                            </Text>
+                          </View>
+
+                          <View style={HomePageStyles.cameraActionContainer}>
+                            <TouchableOpacity
+                              style={HomePageStyles.primaryCameraButton}
+                              onPress={handleTakePicture}
+                              activeOpacity={0.8}
+                            >
+                              <Feather name="camera" size={24} color="#fff" />
+                              <Text style={HomePageStyles.primaryButtonText}>
+                                Take Photo
+                              </Text>
+                            </TouchableOpacity>
+
+                            <View style={HomePageStyles.dividerContainer}>
+                              <View style={HomePageStyles.dividerLine} />
+                              <Text style={HomePageStyles.dividerText}>or</Text>
+                              <View style={HomePageStyles.dividerLine} />
+                            </View>
+
+                            <TouchableOpacity
+                              style={HomePageStyles.secondaryCameraButton}
+                              onPress={handlePickImage}
+                              activeOpacity={0.8}
+                            >
+                              <Feather name="image" size={20} color="#4CAF50" />
+                              <Text style={HomePageStyles.secondaryButtonText}>
+                                Choose from Gallery
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+
+                          <View style={HomePageStyles.cameraHintContainer}>
+                            <Text style={HomePageStyles.cameraHintTitle}>
+                              Tips for best results:
+                            </Text>
+                            <View style={HomePageStyles.cameraHints}>
+                              <Text style={HomePageStyles.cameraHintText}>
+                                • Good lighting
+                              </Text>
+                              <Text style={HomePageStyles.cameraHintText}>
+                                • Clear view of food
+                              </Text>
+                              <Text style={HomePageStyles.cameraHintText}>
+                                • Close-up shots work best
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={HomePageStyles.imagePreviewContainer}>
+                          <View style={HomePageStyles.imageWrapper}>
+                            <Image
+                              source={{ uri: image }}
+                              style={HomePageStyles.capturedImage}
+                            />
+
+                            {/* 🔄 Scanning effect overlay */}
+                            {isScanning && (
+                              <Animated.View
+                                style={[
+                                  HomePageStyles.scanOverlay,
+                                  {
+                                    transform: [
+                                      {
+                                        translateY: scanAnim.interpolate({
+                                          inputRange: [0, 1],
+                                          outputRange: [0, 290],
+                                        }),
+                                      },
+                                    ],
+                                  },
+                                ]}
+                              />
+                            )}
+
+                            {/* Only show close button when not scanning */}
+                            {!isScanning && (
+                              <TouchableOpacity
+                                style={HomePageStyles.closeButton}
+                                onPress={() => setImage(null)}
+                                activeOpacity={0.7}
+                              >
+                                <Feather name="x" size={24} color="#fff" />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+
+                          <TouchableOpacity
+                            style={[
+                              HomePageStyles.analyzeButton,
+                              isScanning && HomePageStyles.disabledButton,
+                            ]}
+                            onPress={handleAnalyzeImage}
+                            activeOpacity={0.8}
+                            disabled={isScanning}
+                          >
+                            <Text style={HomePageStyles.buttonText}>
+                              {isScanning
+                                ? 'Analyzing...'
+                                : selectedTopOns.length > 0
+                                ? `Analyze with ${
+                                    selectedTopOns.length
+                                  } protein${
+                                    selectedTopOns.length > 1 ? 's' : ''
+                                  }`
+                                : 'Select Proteins & Analyze'}
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* Show selected top-ons summary */}
+                          {selectedTopOns.length > 0 && (
+                            <View style={topOnsSummaryStyles.container}>
+                              <Text style={topOnsSummaryStyles.title}>
+                                Selected Proteins:
+                              </Text>
+                              <Text style={topOnsSummaryStyles.items}>
+                                {selectedTopOns
+                                  .map(
+                                    (topOn) =>
+                                      `${topOn.quantity}x ${topOn.name}`
+                                  )
+                                  .join(', ')}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </>
+                  )}
+
+                  {/* Search UI */}
+                  {active === 'search' && (
+                    <View style={HomePageStyles.searchContainer}>
+                      <View style={HomePageStyles.searchSection}>
+                        <Feather
+                          name="search"
+                          size={40}
+                          color="#4CAF50"
+                          style={HomePageStyles.topIcon}
+                        />
+                        <Text style={HomePageStyles.descriptionText}>
+                          Search for your food by name to get detailed
+                          nutritional information
                         </Text>
                       </View>
-                    )}
 
-                    <View style={HomePageStyles.suggestionContainer}>
-                      <Text style={HomePageStyles.suggestionTitle}>
-                        Popular searches:
-                      </Text>
-                      <View style={HomePageStyles.suggestionTags}>
-                        {[
-                          'waakye',
-                          'fufu',
-                          'banku',
-                          'jollof rice',
-                          'kelewele',
-                        ].map((suggestion) => (
+                      <View style={HomePageStyles.inputWrapper}>
+                        <Feather
+                          name="search"
+                          size={20}
+                          color="#999"
+                          style={HomePageStyles.searchIcon}
+                        />
+                        <TextInput
+                          style={HomePageStyles.input}
+                          placeholder="Type food name..."
+                          value={food}
+                          onChangeText={setFood}
+                          placeholderTextColor="#999"
+                          returnKeyType="search"
+                          onSubmitEditing={handleSearch}
+                        />
+                        {food.trim() !== '' && (
                           <TouchableOpacity
-                            key={suggestion}
-                            style={HomePageStyles.suggestionTag}
-                            onPress={() => setFood(suggestion)}
+                            onPress={() => setFood('')}
+                            style={HomePageStyles.clearButton}
                             activeOpacity={0.7}
                           >
-                            <Text style={HomePageStyles.suggestionTagText}>
-                              {suggestion}
-                            </Text>
+                            <Feather name="x" size={18} color="#999" />
                           </TouchableOpacity>
-                        ))}
+                        )}
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={handleSearch}
+                        style={[
+                          HomePageStyles.searchButton,
+                          food.trim() === '' &&
+                            HomePageStyles.disabledSearchButton,
+                        ]}
+                        activeOpacity={0.8}
+                        disabled={food.trim() === ''}
+                      >
+                        <Feather name="search" size={20} color="#fff" />
+                        <Text style={HomePageStyles.searchButtonText}>
+                          {selectedTopOns.length > 0
+                            ? `Search with ${selectedTopOns.length} protein${
+                                selectedTopOns.length > 1 ? 's' : ''
+                              }`
+                            : 'Select Proteins & Search'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Show selected top-ons summary */}
+                      {selectedTopOns.length > 0 && (
+                        <View style={topOnsSummaryStyles.container}>
+                          <Text style={topOnsSummaryStyles.title}>
+                            Selected Proteins:
+                          </Text>
+                          <Text style={topOnsSummaryStyles.items}>
+                            {selectedTopOns
+                              .map(
+                                (topOn) => `${topOn.quantity}x ${topOn.name}`
+                              )
+                              .join(', ')}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={HomePageStyles.suggestionContainer}>
+                        <Text style={HomePageStyles.suggestionTitle}>
+                          Popular searches:
+                        </Text>
+                        <View style={HomePageStyles.suggestionTags}>
+                          {[
+                            'waakye',
+                            'fufu',
+                            'banku',
+                            'jollof rice',
+                            'kelewele',
+                          ].map((suggestion) => (
+                            <TouchableOpacity
+                              key={suggestion}
+                              style={HomePageStyles.suggestionTag}
+                              onPress={() => setFood(suggestion)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={HomePageStyles.suggestionTagText}>
+                                {suggestion}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
                       </View>
                     </View>
-                  </View>
-                )}
-              </>
-            ) : (
-              searchedFood && (
-                <>
-                  <HomeInsights
-                    foodName={searchedFood.name}
-                    numCalories={searchedFood.numCalories}
-                    imageSource={searchedFood.imageUri}
-                    digestionTime={searchedFood.digestionTime}
-                    timeToEat={searchedFood.timeToEat}
-                    digestionComplexity={searchedFood.digestionComplexity}
-                    additionalDigestionNotes={
-                      searchedFood.additionalDigestionNotes
-                    }
-                    nutrientBreakdown={searchedFood.nutrientBreakdown}
-                    benefits={searchedFood.benefits}
-                    cautions={searchedFood.cautions}
-                    onBack={() => {
-                      setIsAnalyzed(false);
-                      setSearchedFood(null);
-                      setImage(null);
-                    }}
-                  />
-
-                  {/* Action Buttons */}
-                  <View style={actionButtonStyles.container}>
-                    <TouchableOpacity
-                      style={actionButtonStyles.saveButton}
-                      onPress={handleSaveToHistory}
-                      activeOpacity={0.8}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? (
-                        <>
-                          <ActivityIndicator size="small" color="#fff" />
-                          <Text style={actionButtonStyles.saveButtonText}>
-                            Adding calories...
-                          </Text>
-                        </>
-                      ) : (
-                        <>
-                          <Feather name="plus-circle" size={20} color="#fff" />
-                          <Text style={actionButtonStyles.saveButtonText}>
-                            Add to track my calories
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={actionButtonStyles.ignoreButton}
-                      onPress={handleIgnoreFood}
-                      activeOpacity={0.8}
-                    >
-                      <Feather name="x-circle" size={20} color="#666" />
-                      <Text style={actionButtonStyles.ignoreButtonText}>
-                        Skip & Scan Again
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                  )}
                 </>
-              )
-            )}
-          </View>
-        </View>
-      </ScrollView>
+              ) : (
+                searchedFood && (
+                  <>
+                    <HomeInsights
+                      foodName={searchedFood.name}
+                      numCalories={searchedFood.numCalories}
+                      imageSource={searchedFood.imageUri}
+                      digestionTime={searchedFood.digestionTime}
+                      timeToEat={searchedFood.timeToEat}
+                      digestionComplexity={searchedFood.digestionComplexity}
+                      additionalDigestionNotes={
+                        searchedFood.additionalDigestionNotes
+                      }
+                      nutrientBreakdown={searchedFood.nutrientBreakdown}
+                      benefits={searchedFood.benefits}
+                      cautions={searchedFood.cautions}
+                      onBack={() => {
+                        setIsAnalyzed(false);
+                        setSearchedFood(null);
+                        setImage(null);
+                      }}
+                    />
 
-      {/* Top-ons Modal */}
-      <TopOnsModal
-        visible={showTopOnsModal}
-        onClose={handleTopOnsClose}
-        onConfirm={handleTopOnsConfirm}
-        onSkip={handleTopOnsSkip}
-      />
-    </SafeAreaView>
+                    {/* Action Buttons */}
+                    <View style={actionButtonStyles.container}>
+                      <TouchableOpacity
+                        style={actionButtonStyles.saveButton}
+                        onPress={handleSaveToHistory}
+                        activeOpacity={0.8}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <>
+                            <ActivityIndicator size="small" color="#fff" />
+                            <Text style={actionButtonStyles.saveButtonText}>
+                              Adding calories...
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Feather
+                              name="plus-circle"
+                              size={20}
+                              color="#fff"
+                            />
+                            <Text style={actionButtonStyles.saveButtonText}>
+                              Add to track my calories
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={actionButtonStyles.ignoreButton}
+                        onPress={handleIgnoreFood}
+                        activeOpacity={0.8}
+                      >
+                        <Feather name="x-circle" size={20} color="#666" />
+                        <Text style={actionButtonStyles.ignoreButtonText}>
+                          Skip & Scan Again
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )
+              )}
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Top-ons Modal */}
+        <TopOnsModal
+          visible={showTopOnsModal}
+          onClose={handleTopOnsClose}
+          onConfirm={handleTopOnsConfirm}
+          onSkip={handleTopOnsSkip}
+        />
+      </SafeAreaView>
+    </View>
   );
 };
 

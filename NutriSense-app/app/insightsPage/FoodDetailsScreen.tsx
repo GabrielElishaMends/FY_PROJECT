@@ -12,6 +12,8 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import InsightsPageStyle from '../styles/InsightPageStyles';
 import colors from '../config/colors';
 import axios from 'axios';
@@ -21,7 +23,6 @@ import {
   renderNutrientsTab,
 } from '../../components/InsightTabs';
 import { BackendLink } from '@/components/Default';
-import { useLocalSearchParams } from 'expo-router';
 import foodImages from '../../assets/foodImages/foodImages';
 
 interface FoodDetails {
@@ -49,6 +50,7 @@ const FoodDetailsScreen = () => {
   const [activeTab, setActiveTab] = useState<
     'Digestive' | 'Health' | 'Nutrients'
   >('Nutrients'); // Changed default tab to 'Nutrients'
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const fetchFoodDetails = async () => {
@@ -67,11 +69,34 @@ const FoodDetailsScreen = () => {
 
   return (
     <View style={{ flex: 1 }}>
+      <Stack.Screen options={{ headerShown: false }} />
+      {/* Status Bar Background */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.tertiary,
+          zIndex: 1000,
+        }}
+      />
+      <StatusBar style="light" />
       {foodDetails ? (
         <SafeAreaView style={InsightsPageStyle.modernSafeContainer}>
-          <StatusBar style="light" backgroundColor={colors.tertiary} />
-          {/* Modern Header Section */}
+          {/* Modern Header Section with Gradient */}
           <View style={InsightsPageStyle.modernHeaderSection}>
+            <LinearGradient
+              colors={[colors.tertiary, '#2E7D32']} // From tertiary to slightly darker green
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+              }}
+            />
             <View style={InsightsPageStyle.headerContent}>
               <View style={InsightsPageStyle.titleContainer}>
                 <Text style={InsightsPageStyle.modernPageTitle}>

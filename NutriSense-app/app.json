@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "NutriSense",
-    "slug": "NutriSense",
+    "name": "NutriSense-app",
+    "slug": "NutriSense-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "nutrisenseapp",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
@@ -15,7 +15,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -27,7 +28,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splashIcon.png",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }

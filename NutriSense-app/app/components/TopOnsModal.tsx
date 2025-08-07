@@ -6,16 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import {
   TOP_ONS_DATA,
-  TopOnItem,
   SelectedTopOn,
   calculateTopOnNutrition,
-  sumTopOnsNutrition,
-} from '../utils/topOnsData';
+  sumTopOnsNutrition
+} from '../../utils/topOnsData';
 
 interface TopOnsModalProps {
   visible: boolean;
