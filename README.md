@@ -17,7 +17,7 @@ FY_PROJECT/
 ## 🚀 Features
 
 - 📸 Ghanaian food image classification using CNN & MobileNetV2
-- 🍱 Nutrition tracking and recommendations
+- 🍱 Nutrition tracking
 - 🧠 TensorFlow model (.h5) integration in backend
 - 🔐 Firebase Authentication & Firestore Database
 - ⚙️ RESTful Node.js Express backend
